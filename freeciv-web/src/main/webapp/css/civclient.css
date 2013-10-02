@@ -110,7 +110,8 @@ button {
   overflow: hidden;
   padding-right: 12px;
   display: inline-block;
-  height: 40px;
+  height: 30px;
+  width: 30px;
 }
 
 #ie_canvas {
@@ -310,7 +311,6 @@ button {
 #civ_dialog {
   padding: 30px;
   margin: 20px;
-  width: 99%;
   height: 500px;
   text-align: center;
 }
@@ -413,6 +413,9 @@ button {
   padding-right: 10px;  
 }
 
+#city_production_overview {
+  padding-top: 10px;
+}
 
 /* This is for popup menu support */
 .hidden { position:absolute; top:0; left:-9999px; width:1px; height:1px; overflow:hidden; }
@@ -445,3 +448,28 @@ button.fg-button {  width:auto; overflow:visible; } /* removes extra button widt
   overflow: hidden;
 }
 
+.chatbox_dialog {
+  background: rgba(0,0,0,0.6);
+  background-color: rgba(0,0,0, 0.6);
+}
+
+#ui-dialog-title-game_chatbox_panel {
+  margin-top: -5px;
+  font-size: 10px;
+}
+
+.chatbox_dialog div.ui-dialog-titlebar {
+  height: 5px;
+}
+
+.chatbox_dialog div.ui-dialog-content {
+  padding: 5px 0;
+}
+
+.nation_button {
+  font-size: 11px;
+}
+
+.specialist_item {
+  float: left;
+}

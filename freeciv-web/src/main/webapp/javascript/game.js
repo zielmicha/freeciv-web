@@ -44,19 +44,18 @@ function game_find_unit_by_number(id)
 }
 
 /**************************************************************************
-  ...
+ Count the # of thousand citizen in a civilisation. 
 **************************************************************************/
-function get_player_population() {
+function civ_population(playerno) {
   var population = 0;
-  var playerno = client.conn.playing.playerno;
   
   for (city_id in cities) {
     var pcity = cities[city_id];
     if (playerno == pcity['owner']) {
-      population += pcity['size'];
+      population += city_population(pcity);
     }
   }
-  return population * 10000;
+  return numberWithCommas(population * 1000);
 }
 
 
@@ -84,9 +83,14 @@ function update_game_status_panel() {
         net_income = "+" + pplayer['net_income'];
       } 
 
+      var year_string = "";
+      if (game_info['year'] < 0) year_string = Math.abs(game_info['year']) + "BCE ";
+      if (game_info['year'] >= 0) year_string = game_info['year'] + "CE ";
+      year_string += "(T" + game_info['turn'] + ")";
+
       status_html += "<b>" + nations[pplayer['nation']]['adjective'] + "</b> Population: ";
-      status_html += "<b>" + get_player_population() + "</b>  ";
-      status_html += "Turn: <b>" + game_info['turn'] + "</b>  ";
+      status_html += "<b>" + civ_population(client.conn.playing.playerno) + "</b>  ";
+      status_html += "Year: <b>" + year_string + "</b> ";
       status_html += "Gold: <b>" + pplayer['gold'] + " (" + net_income + ")</b>  "; 
       status_html += "Tax: <b>" + tax + "</b> ";
       status_html += "Lux: <b>" + lux + "</b> ";
@@ -98,5 +102,8 @@ function update_game_status_panel() {
   }
   
   $("#game_status_panel").html(status_html); 
+
+  document.title = "Freeciv-web - " + username + "  (turn:" + game_info['turn'] + ", port:" + civserverport + ")";
+
 
 }

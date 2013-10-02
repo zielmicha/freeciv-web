@@ -23,9 +23,7 @@ import logging
 from civcom import *
 import json
 
-ROOT = op.normpath(op.dirname(__file__))
 PROXY_PORT = 8002
-WS_UPDATE_INTERVAL = 0.011
 
 civcoms = {}
 
@@ -54,6 +52,7 @@ class WSHandler(websocket.WebSocketHandler):
     def open(self):
         self.clients.append(self)
         self.is_ready = False
+        self.set_nodelay(True)
 
     def on_message(self, message):
         if (not self.is_ready):
@@ -61,6 +60,7 @@ class WSHandler(websocket.WebSocketHandler):
             login_message = json.loads(message)
             self.username = login_message[u'username']
             self.civserverport = login_message[u'port']
+            self.ip = self.request.headers.get(u"X-Real-IP", u"missing")
             self.loginpacket = message
             self.is_ready = True
             self.civcom = self.get_civcom(
@@ -71,22 +71,11 @@ class WSHandler(websocket.WebSocketHandler):
         self.civcom = self.get_civcom(self.username, self.civserverport, self)
 
         if (self.civcom == None):
-            self.send(u"Error: Could not authenticate user.")
+            self.write_message(u"Error: Could not authenticate user.")
             return
 
-        try:
-            # send JSON request to civserver.
-            if not self.civcom.send_packets_to_civserver(message):
-                if (logger.isEnabledFor(logging.INFO)):
-                    logger.info(u"Sending data to civserver failed.")
-                self.write_message(u'Error: Civserver communication failure ')
-                return
-
-        except:
-            if (logger.isEnabledFor(logging.ERROR)):
-                logger.error(u"Service unavailable: freeciv-web down.")
-            self.write_message(
-                u"Error: Service Unavailable. Something is wrong here ")
+        # send JSON request to civserver.
+        self.civcom.queue_to_civserver(message)
 
     def on_close(self):
         self.clients.remove(self)
@@ -102,43 +91,15 @@ class WSHandler(websocket.WebSocketHandler):
         if key not in list(civcoms.keys()):
             if (int(civserverport) < 5500):
                 return None
-            civcom = CivCom(username, int(civserverport))
-            civcom.connect_time = time.time()
-            civcom.set_civwebserver(self)
-            civcom.is_websocket_active = True
+            civcom = CivCom(username, int(civserverport), self)
             civcom.start()
             civcoms[key] = civcom
-
-            messenger = CivWsMessenger(civcom, ws_connection)
-            messenger.start()
 
             time.sleep(0.4)
             return civcom
         else:
             usrcivcom = civcoms[key]
             return usrcivcom
-
-
-class CivWsMessenger(Thread):
-
-    u""" This thread listens for messages from the civserver
-        and sends the message to the WebSocket client. """
-
-    def __init__(self, civcom, ws_handler):
-        Thread.__init__(self)
-        self.daemon = True
-        self.civcom = civcom
-        self.ws_handler = ws_handler
-
-    def run(self):
-        while 1:
-            if (self.civcom.stopped or self.ws_handler == None):
-                return
-
-            packet = self.civcom.get_send_result_string()
-            if (packet != None and self.ws_handler != None):
-                self.ws_handler.write_message(packet)
-            time.sleep(WS_UPDATE_INTERVAL)
 
 
 if __name__ == u"__main__":

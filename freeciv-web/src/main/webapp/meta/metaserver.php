@@ -384,12 +384,11 @@ if ( isset($port) ) {
 	<a href="/" style="padding: 3px; float: left;"><img src="/images/freeciv-web-logo.png" alt="The Freeciv Project"></a>
           <div class="nav-collapse collapse">
             <ul class="nav">
-              <li><a href="/">Home</a></li>
-              <li><a href="/wireframe.jsp?do=menu">Play Online</a></li>
+              <li><a href="/">Play Freeciv!</a></li>
               <li><a href="http://www.freeciv.org/wiki/">Wiki</a></li>
               <li class="active"><a href="/meta/metaserver.php">Current Games</a></li>
               <li><a href="http://forum.freeciv.org">Forum</a></li>
-              <li><a href="http://github.com/cazfi/freeciv-web">Development</a></li>
+              <li><a href="http://github.com/freeciv/freeciv-web">Development</a></li>
               <li><a href="http://freeciv.wikia.com/wiki/Donations">Donate!</a></li>
 
             </ul>
@@ -433,7 +432,7 @@ if ( isset($port) ) {
              . "'>Join</a> <b>You can join this game now.</b></div>";
 	}
         print "<div><a class='button' href='/civclientlauncher?action=observe&amp;civserverport=" . db2html($port) . "&amp;civserverhost=" . db2html($host)
-             . "'>Observe</a> <b>You can observe this game now.</b></div>";
+             . "'>Join/Observe</a> <b>You can observe this game now.</b></div>";
 
         print "<br/><br/>";
         $msg = db2html($row["message"]);
@@ -528,7 +527,7 @@ if ( isset($port) ) {
 
 	  print "<a  class='button' href=\"/civclientlauncher?action=observe&amp;civserverport=" 
 		  . db2html($row["port"]) . "&amp;civserverhost=" . db2html($row["host"]) . "\">";
-          print "Observe";
+          print "Join/Observe";
           print "</a>";
 
           print "<a class='button' href=\"/meta/metaserver.php?server_port=" . db2html($row["host"]) . ":" . db2html($row["port"]) . "\">";
@@ -585,7 +584,7 @@ if ( isset($port) ) {
 	   print "</a>";
 	  } else {
 	   print "<a  class='button' href=\"/civclientlauncher?action=observe&amp;civserverport=" . db2html($row["port"]) . "&amp;civserverhost=" . db2html($row["host"]) . "\">";
-           print "Observe";
+           print "Join/Observe";
            print "</a>";
 	  }
 

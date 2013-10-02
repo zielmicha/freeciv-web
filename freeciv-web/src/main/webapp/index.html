@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title>Freeciv-web </title>
+    <title>Freeciv-web - strategy game playable online with HTML5</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Freeciv is a Free and Open Source empire-building strategy game made with HTML5 which you can play in your browser, tablet or mobile device!">
     <meta name="author" content="The Freeciv project">
@@ -14,8 +14,18 @@
       body {
         padding-top: 60px;
         padding-bottom: 40px;
+	background-image:url('/images/bg.jpg');
+
+      }
+      #intro-message {
+        min-height: 120px;
       }
     </style>
+    <script type="text/javascript" src="/javascript/json2.js"></script>
+    <script type="text/javascript" src="/javascript-compressed/jquery.min.js"></script>
+    <script type="text/javascript" src="/javascript/jstorage.js"></script>
+    <script type="text/javascript" src="/javascript-compressed/menu.js"></script>
+
     <link href="css/bootstrap-responsive.min.css" rel="stylesheet">
     <link rel="shortcut icon" href="images/freeciv-shortcut-icon.png" />
     <link rel="apple-touch-icon" href="images/freeciv-splash2.png" />
@@ -29,7 +39,19 @@
   ga('create', 'UA-40584174-1', 'freeciv.org');
   ga('send', 'pageview');
       
-</script>
+  $(document).ready(function() {
+    if (navigator.userAgent.toLowerCase().indexOf('chrome') > -1) {
+      $("#chromews").show();
+      $("#mozws").hide();
+    } else if (navigator.userAgent.toLowerCase().indexOf('firefox') > -1) {
+      $("#mozws").show();
+      $("#chromews").hide();
+    } else {
+      $("#mozws").hide();
+      $("#chromews").hide();
+    }
+  });
+</script> 
 
 
   </head>
@@ -49,12 +71,11 @@
           <a href="/" style="padding: 3px; float: left;"><img src="/images/freeciv-web-logo.png" alt="The Freeciv Project"></a>
           <div class="nav-collapse collapse">
             <ul class="nav">
-              <li class="active"><a href="/">Home</a></li>
-              <li><a href="/wireframe.jsp?do=menu">Play Online</a></li>
+              <li class="active"><a href="/">Play Freeciv!</a></li>
               <li><a href="http://www.freeciv.org/wiki/">Wiki</a></li>
               <li><a href="/meta/metaserver.php">Current Games</a></li>
               <li><a href="http://forum.freeciv.org">Forum</a></li>
-              <li><a href="http://github.com/cazfi/freeciv-web">Development</a></li>
+              <li><a href="http://github.com/freeciv/freeciv-web">Development</a></li>
               <li><a href="http://freeciv.wikia.com/wiki/Donations">Donate!</a></li>
             </ul>
            </div><!--/.nav-collapse -->
@@ -67,11 +88,25 @@
       <!-- Main hero unit for a primary marketing message or call to action -->
 
       <div class="hero-unit" >
-        <h1 >Play Freeciv!</h1>  <div style="float: right; margin: 20px; margin-top: -30px;">	<a href="/wireframe.jsp?do=menu"><img src="images/freeciv-splash2.png" alt="logo"></a></div>
+        <h2>Freeciv HTML5 Online Version!</h2>  <div style="float: right; margin: 20px; margin-top: -30px;">	<a href="/preload.jsp?redir=/civclientlauncher?action=new"><img src="images/freeciv-splash2.png" alt="logo"></a></div>
 
-        <p>Freeciv is a Free and Open Source empire-building strategy game inspired by the history of human civilization. The game commences in prehistory and your mission is to lead your tribe from the Stone Age to the Space Age...
+        <p id="intro-message">Freeciv is a Free and Open Source empire-building strategy game inspired by the history of human civilization. The game commences in prehistory and your mission is to lead your tribe from the Stone Age to the Space Age. 
+	Freeciv can be played online in your web-browser for free. Choose how you want to play:
 	</p>
-        <p><a href="/wireframe.jsp?do=menu" class="btn btn-primary btn-large">Play Online Now &raquo;</a></p>
+
+	<p>
+          <a href="/preload.jsp?redir=/civclientlauncher?action=new" 
+             id="single-button" class="btn btn-primary">Single-player game &raquo;</a>
+          <a href="/preload.jsp?redir=/meta/metaserver.php%3Ftab%3Dmulti" 
+             id="multi-button" class="btn btn-info">Multi-player game &raquo;</a>
+          <a href="/preload.jsp?redir=/wireframe.jsp?do=scenarios" 
+             id="scenarios-button" class="btn btn-info">Scenarios &raquo;</a>
+          <a href="/preload.jsp?redir=/tutorial.jsp" 
+             id="tutorial-button" class="btn btn-info">Tutorial &raquo;</a>
+          <a href="/wireframe.jsp?do=load" 
+             id="load-button" class="btn">Load Savegame &raquo;</a>
+
+        </p>
 
       </div>
       
@@ -80,11 +115,15 @@
         <div class="span4">
           <h2>HTML5 browser game</h2>
           <p>Freeciv-web can be played online using a desktop computer, mobile phone or tablet. Freeciv-web has been optimized for the iPhone 5 on mobile and modern HTML5 browsers such as Chrome and Firefox.</p>
-          <p><a class="btn" href="/wireframe.jsp?do=menu">To Browser version &raquo;</a></p>
+          <p><a class="btn btn-success" href="/preload.jsp?redir=/civclientlauncher?action=new">Play Freeciv now &raquo;</a>
+          </p>
 	<br><br>
 
 
-              <a href="https://chrome.google.com/webstore/detail/freeciv/ldhdjhmbapbeafmhdoobnlldhfopfcgh"><img src="/images/chrome-ws.png"></a>
+		<div id="chromews"><a href="https://chrome.google.com/webstore/detail/freeciv/ldhdjhmbapbeafmhdoobnlldhfopfcgh" ><img src="/images/chrome-ws.png"></a></div>
+		<div id="mozws"><a href="https://marketplace.firefox.com/app/freeciv"><img src="/images/firefox-marketplace.png"></a></div>
+<br><br>
+	<br><br>
 
 <!-- AddThis Button BEGIN -->
 <div class="addthis_toolbox addthis_default_style ">
@@ -114,11 +153,12 @@
 
        </div>
         <div class="span4">
-	  <img src="images/freeciv-web-screenshot.png" alt="screenshot">
-          <p>Screenshot of Freeciv in action!</p>
-          <p><a class="btn" href="http://freeciv.wikia.com/wiki/Screenshots">View more screenshots &raquo;</a></p>
-        </div>
+	<h3>Freeciv Video Review!</h3>
+	<p>MMO-Play has created a Freeciv Gameplay First Look video!</p>
 
+		<iframe width="360" height="225" src="//www.youtube.com/embed/sKzNrS9r93U" frameborder="0" allowfullscreen></iframe>
+
+        </div>
 
 
       </div>
@@ -131,7 +171,6 @@
 
     </div> <!-- /container -->
 
-  
   </body>
 </html>
 

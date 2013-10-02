@@ -109,8 +109,7 @@ function civclient_init()
   observe_game_check();
 
   if (observing) {
-    show_dialog_message("Welcome to Freeciv-web", 
-      "Please wait while you are being logged in as an observer in the game.");
+    $.blockUI({ message: '<h1>Please wait while you are being logged in as an observer in the game.</h1>' });
 
   } else if (is_small_screen()) {
     show_intro_dialog("Welcome to Freeciv-web", 
@@ -133,9 +132,13 @@ function civclient_init()
 **************************************************************************/
 function chatbox_resized()
 {
-  var newheight = $("#game_chatbox_panel").parent().height() - 58;
-  $("#game_message_area").css("height", newheight);
+  if (is_small_screen()) {
+    $("#game_message_area").css("height", "79%");
 
+  } else {
+    var newheight = $("#game_chatbox_panel").parent().height() - 40;
+    $("#game_message_area").css("height", newheight);
+  }
 }
 
 
@@ -149,8 +152,6 @@ function init_chatbox()
 
   if (is_small_screen()) {
     $("#game_chatbox_panel").detach().prependTo("#tabs-chat");
-  } else {
-    $("#game_chatbox_panel").detach().prependTo("#mapview_canvas_div");
   }
 
   $("#game_chatbox_panel").attr("title", "Messages");		
@@ -167,12 +168,6 @@ function init_chatbox()
 		});
 	
   $("#game_chatbox_panel").dialog('open');		
-  $(".chatbox_dialog div.ui-dialog-titlebar").css("height", "5px");
-  $(".chatbox_dialog div.ui-dialog-content").css("padding", "5px 0");
-  $("#ui-dialog-title-game_chatbox_panel").css("margin-top", "-5px");
-  $("#ui-dialog-title-game_chatbox_panel").css("font-size", "10px");
-  $(".chatbox_dialog").css("background", "rgba(0,0,0,0.6)")		
-  $(".chatbox_dialog").css("background-color", "rgba(0,0,0, 0.6)")		
   $(".chatbox_dialog").css("top", "60px");
 
 

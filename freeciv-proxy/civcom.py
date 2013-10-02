@@ -1,7 +1,7 @@
 # -*- coding: latin-1 -*-
 
 u'''
- Freeciv - Copyright (C) 2009 - Andreas Røsdal   andrearo@pvv.ntnu.no
+ Freeciv - Copyright (C) 2009-2013 - Andreas Røsdal   andrearo@pvv.ntnu.no
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2, or (at your option)
@@ -14,107 +14,115 @@ u'''
 '''
 
 import socket
+import select
 from struct import *
-from threading import Thread, RLock
+from threading import Thread
 import logging
 import time
 
-HOST = u'localhost'
-MAX_LEN_PACKET = 48
-VERSION = u"+Freeciv.Web.Devel-2.5-2013.May.02"
-    # Must be kept in sync with Freeciv server.
-VER_INFO = u"-dev"
+HOST = u'127.0.0.1'
 logger = logging.getLogger(u"freeciv-proxy")
+
+# The CivCom handles communication between freeciv-proxy and the Freeciv C
+# server.
 
 
 class CivCom(Thread):
 
-    def __init__(self, username, civserverport):
+    def __init__(self, username, civserverport, civwebserver):
         Thread.__init__(self)
         self.socket = None
         self.username = username
         self.civserverport = civserverport
         self.key = username + unicode(civserverport)
         self.send_buffer = []
-        self.lock = RLock()
-        self.pingstamp = time.time()
+        self.connect_time = time.time()
+        self.civserver_messages = []
         self.stopped = False
-
+        self.packet_size = -1
+        self.net_buf = bytearray(0)
+        self.header_buf = bytearray(0)
         self.daemon = True
-
-    def set_civwebserver(self, civwebserver):
         self.civwebserver = civwebserver
 
     def run(self):
         # setup connection to civserver
         if (logger.isEnabledFor(logging.INFO)):
-            logger.info(u"Start connection to civserver.")
+            logger.info(u"Start connection to civserver for " + self.username
+                        + u" from IP " + self.civwebserver.ip)
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.settimeout(1)
-        self.socket.setblocking(1)
+        self.socket.setblocking(True)
+        self.socket.settimeout(2)
         try:
             self.socket.connect((HOST, self.civserverport))
+            self.socket.settimeout(0.01)
         except socket.error, reason:
             self.send_error_to_client(
-                u"Proxy unable to connect to civserver. Please go back and try again. %s" % (reason))
+                u"Proxy unable to connect to civserver. Error: %s" % (reason))
             return
 
-        # send packet
-        self.send_to_civserver(self.civwebserver.loginpacket)
+        # send initial login packet to civserver
+        self.civserver_messages = [self.civwebserver.loginpacket]
+        self.send_packets_to_civserver()
 
         # receive packets from server
-        net_buf = bytearray(0)
         while 1:
-            net_buf = self.read_from_connection(net_buf)
+            packet = self.read_from_connection()
 
-            while 1:
+            if (self.stopped):
+                return
 
-                if (self.stopped):
-                    return
+            if (packet != None):
+                self.net_buf += packet
 
-                packet = self.get_packet_from_connection(net_buf)
-                if (packet != None):
-                    net_buf = net_buf[4 + len(packet):]
-                    result = packet[:-1]
-                    if (len(result) > 0):
-                        self.send_buffer_append(result)
+                if (len(self.net_buf) == self.packet_size and self.net_buf[-1] == 0):
+                    # valid packet received from freeciv server, send it to
+                    # client.
+                    self.send_buffer_append(self.net_buf[:-1])
+                    self.packet_size = -1
+                    self.net_buf = bytearray(0)
+                    continue
 
-                else:
-                    break
-
-    def read_from_connection(self, net_buf):
-        size = MAX_LEN_PACKET
-        # TODO: les saa mye som trengs...
-
-        if (self.socket != None and not self.stopped):
-            data = self.socket.recv(size)
-
-            # sleep a short while, to avoid excessive CPU use.
-            if (len(data) == 0):
-                time.sleep(0.005)
-                return net_buf
-            else:
-                return net_buf + data
-        else:
-            # sleep a short while, to avoid excessive CPU use.
             time.sleep(0.01)
-            return net_buf
+            # prevent max CPU usage in case of error
 
-    def get_packet_from_connection(self, net_buf):
+    def read_from_connection(self):
+        try:
+            if (self.socket != None and not self.stopped):
+                if (self.packet_size == -1):
+                    self.header_buf += self.socket.recv(
+                        4 - len(self.header_buf))
+                    if (len(self.header_buf) == 0):
+                        self.close_connection()
+                        return None
+                    if (len(self.header_buf) == 4):
+                        header_pck = unpack(u'>HH', self.header_buf)
+                        self.header_buf = bytearray(0)
+                        self.packet_size = header_pck[0] - 4
+                        if (self.packet_size <= 0 or self.packet_size > 32767):
+                            logger.error(u"Invalid packet size.")
+                    else:
+                        # complete header not read yet. return now, and read
+                        # the rest next time.
+                        return None
 
-        if (len(net_buf) < 4):
+            if (self.socket != None and self.net_buf != None and self.packet_size > 0):
+                data = self.socket.recv(self.packet_size - len(self.net_buf))
+                if (len(data) == 0):
+                    self.close_connection()
+                    return None
+
+                return data
+        except socket.timeout:
+            self.send_packets_to_client()
+            self.send_packets_to_civserver()
             return None
-
-        result = unpack(u'>HH', net_buf[:4])
-        packet_len = result[0]
-
-        if (len(net_buf) < packet_len):
+        except OSError:
             return None
-        return net_buf[4:packet_len]
 
     def close_connection(self):
-        if (logger.isEnabledFor(logging.ERROR)):
-            logger.error(
+        if (logger.isEnabledFor(logging.INFO)):
+            logger.info(
                 u"Server connection closed. Removing civcom thread for " + self.username)
 
         if (hasattr(self.civwebserver, u"civcoms") and self.key in list(self.civwebserver.civcoms.keys())):
@@ -124,66 +132,58 @@ class CivCom(Thread):
             self.socket.close()
             self.socket = None
 
-    def send_packets_to_civserver(self, packet):
-        if not self.send_to_civserver(packet):
-            return False
-        return True
+        self.stopped = True
 
-    def send_to_civserver(self, net_packet_json):
-        header = pack(u'>HH', len(net_packet_json), 0)
-        try:
-            # Send packet to civserver
-            self.socket.sendall(
-                header + unicode(net_packet_json).encode(u'utf-8') + '\0')
-            return True
-        except:
-            self.send_error_to_client(
-                u"Proxy unable to communicate with civserver.")
-            return False
-        else:
-            if (logger.isEnabledFor(logging.ERROR)):
-                logger.error(u"invalid packet from 'json_to_civserver'")
-            return False
-
+    # queue messages to be sent to client.
     def send_buffer_append(self, data):
-        if not self.lock.acquire(False):
-            if (logger.isEnabledFor(logging.DEBUG)):
-                logger.debug(u"Could not acquire civcom lock")
-        else:
-            try:
-                self.send_buffer.append(data.decode(u'utf-8'))
-            finally:
-                self.lock.release()
+        try:
+            self.send_buffer.append(
+                data.decode(encoding=u"utf-8", errors=u"ignore"))
+        except UnicodeDecodeError:
+            if (logger.isEnabledFor(logging.ERROR)):
+                logger.error(
+                    u"Unable to decode string from civcom socket, for user: " + self.username)
+            return
 
-    def send_buffer_clear(self):
-        if not self.lock.acquire(False):
-            if (logger.isEnabledFor(logging.DEBUG)):
-                logger.debug(u"Could not acquire civcom lock")
-        else:
-            try:
-                del self.send_buffer[:]
-            finally:
-                self.lock.release()
+    # sends packets to client (WebSockets client / browser)
+    def send_packets_to_client(self):
+        packet = self.get_client_result_string()
+        if (packet != None and self.civwebserver != None):
+            self.civwebserver.write_message(packet)
 
-    def get_send_result_string(self):
+    def get_client_result_string(self):
         result = u""
-        self.pingstamp = time.time()
-        if not self.lock.acquire(False):
-            if (logger.isEnabledFor(logging.DEBUG)):
-                logger.debug(u"Could not acquire civcom lock")
-        else:
-            try:
-                if len(self.send_buffer) > 0:
-                    result = u"[" + u",".join(self.send_buffer) + u"]"
-                else:
-                    result = None
-            finally:
-                del self.send_buffer[:]
-                self.lock.release()
+        try:
+            if len(self.send_buffer) > 0:
+                result = u"[" + u",".join(self.send_buffer) + u"]"
+            else:
+                result = None
+        finally:
+            del self.send_buffer[:]
         return result
 
     def send_error_to_client(self, message):
         if (logger.isEnabledFor(logging.ERROR)):
             logger.error(message)
         self.send_buffer_append(
-            u"{\"pid\":18,\"message\":\"" + message + u"\"}")
+            (u"{\"pid\":18,\"message\":\"" + message + u"\"}").encode(u"utf-8"))
+
+    # Send packets from freeciv-proxy to civserver
+    def send_packets_to_civserver(self):
+        if (self.civserver_messages is None or self.socket is None):
+            return
+
+        try:
+            for net_message in self.civserver_messages:
+                header = pack(u'>HH', len(net_message), 0)
+                self.socket.sendall(
+                    header + net_message.encode(u'utf-8') + '\0')
+        except:
+            self.send_error_to_client(u"Proxy unable to communicate with civserver on port "
+                                      + unicode(self.civserverport))
+        finally:
+            self.civserver_messages = []
+
+    # queue message for the civserver
+    def queue_to_civserver(self, message):
+        self.civserver_messages.append(message)

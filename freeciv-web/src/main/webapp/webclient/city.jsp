@@ -1,6 +1,8 @@
   <div id="city_viewport">
     <h2 style="margin: 5px;" id="city_heading"></h2>
-    
+
+    <div id="specialist_panel">
+    </div>
     
     <div class="city_panel">
       <div id="city_canvas_div">
@@ -10,6 +12,7 @@
         <button type="button" class="button" onClick="close_city_dialog();" >Close</button>
         <button type="button" class="button" onClick="next_city();" >Next city</button>
         <button type="button" class="button" onClick="change_city_production_dialog();" >Change production</button>
+        <button id="buy_button" type="button" class="button" onClick="request_city_buy();" >Buy</button>
       </div>
     </div>
 

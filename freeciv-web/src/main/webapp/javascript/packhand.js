@@ -40,6 +40,7 @@ function handle_thaw_hint(packet)
 /* 100% */
 function handle_ruleset_terrain(packet) 
 {
+  if (packet['name'] == "Lake") packet['graphic_str'] = packet['graphic_alt'];
   terrains[packet['id']] = packet;
 }
 
@@ -123,23 +124,13 @@ function handle_ruleset_resource(packet)
 }
 
 /**************************************************************************
-This was once very ugly...                                   99% complete
+ 100% complete.
 **************************************************************************/
 function handle_tile_info(packet) 
 {
-  var new_known;
-  var old_known;
-  var known_changed = false;
-  var tile_changed = false;
-  var powner = valid_player_by_number(packet['owner']);
-  var presource = resources[packet['resource']];
-  var pterrain = terrains[packet['terrain']];
-
-
   if (tiles != null) {
     tiles[packet['tile']] = $.extend(tiles[packet['tile']], packet);
   }
-
 }
 
 /* 100% complete */
@@ -445,9 +436,6 @@ function handle_unit_packet_common(packet_unit)
   var moved = true;
   var ret = true;
   
-  //console.log("2. handle_unit_packet_common at: " + new Date().getTime());
-  //console.log(packet_unit);
-  
   punit = player_find_unit_by_id(unit_owner(packet_unit), packet_unit['id']);
   
   clear_tile_unit(punit);
@@ -488,7 +476,17 @@ function handle_unit_packet_common(packet_unit)
 
 function handle_unit_combat_info(packet) 
 {
-  /* TODO: implement*/
+  var attacker = units[packet['attacker_unit_id']];
+  var defender = units[packet['defender_unit_id']];
+  var attacker_hp = packet['attacker_hp'];
+  var defender_hp = packet['defender_hp'];
+
+  if (attacker_hp == 0 && is_unit_visible(attacker)) {
+    explosion_anim_map[attacker['tile']] = 25;
+  }
+  if (defender_hp == 0 && is_unit_visible(defender)) {
+    explosion_anim_map[defender['tile']] = 25;
+  }
 }
 
 function handle_unit_diplomat_answer(packet) 
@@ -622,6 +620,9 @@ function handle_spaceship_info(packet)
 /* 100% complete */
 function handle_ruleset_unit(packet) 
 {
+  if (packet['name'] != null && packet['name'].indexOf('?unit:') == 0) 
+    packet['name'] = packet['name'].replace('?unit:', '');
+
   unit_types[packet['id']] = packet;
 }
 
@@ -849,4 +850,14 @@ function handle_player_diplstate(packet)
     diplstates[packet['plr1']] = packet['ds_type'];
   }
 
+}
+
+function handle_ruleset_extra(packet)
+{
+  extras[packet['name']] = packet;
+}
+
+function handle_endgame_player(packet)
+{
+  endgame_player_info.push(packet);
 }

@@ -124,6 +124,8 @@ function control_init()
     city_dialog_remove();
     chatbox_resized();
     set_default_mapview_inactive();
+    $("#tabs-chat").show();
+
   });
 
 
@@ -133,8 +135,9 @@ function control_init()
     show_help();
   });
 
-
-
+  if (!is_touch_device()) { 
+    $("#game_unit_orders_default").tooltip();
+  }
 
 
 }
@@ -358,18 +361,27 @@ function update_unit_order_commands()
   for (var i = 0; i < funits.length; i++) {
     var punit = funits[i]; 
     var ptype = unit_type(punit);
+    var ptile = index_to_tile(punit['tile']);
     if (ptype['name'] == "Settlers" || ptype['name'] == "Workers" 
         || ptype['name'] == "Engineers") {
-      $("#order_road").show();
+      if (!tile_has_road(ptile, ROAD_ROAD)) {
+        $("#order_road").show();
+        $("#order_railroad").hide();
+      } else if (player_invention_state(client.conn.playing, 65) == TECH_KNOWN
+                 && tile_has_road(ptile, ROAD_ROAD) 
+               && !tile_has_road(ptile, ROAD_RAIL)) {
+        $("#order_road").hide();
+        $("#order_railroad").show();
+      } else {
+        $("#order_road").hide();
+        $("#order_railroad").hide();
+      }
       $("#order_mine").show();
       $("#order_irrigate").show();
       $("#order_fortify").hide();
       $("#order_sentry").hide();
       $("#order_explore").hide();
       $("#order_auto_settlers").show();
-      if (player_invention_state(client.conn.playing, 65) == TECH_KNOWN) {
-        $("#order_railroad").show();
-      }
     } else {
       $("#order_road").hide();
       $("#order_railroad").hide();
@@ -386,6 +398,12 @@ function update_unit_order_commands()
       $("#order_build_city").show();
     } else {
       $("#order_build_city").hide();
+    }
+
+    if (ptype['attack_strength'] > 0) {
+      $("#order_pillage").show();
+    } else {
+      $("#order_pillage").hide();
     }
 
   }
@@ -487,7 +505,7 @@ function set_unit_focus_and_redraw(punit)
 function set_unit_focus_and_activate(punit)
 {
   set_unit_focus_and_redraw(punit);
-  request_new_unit_activity(punit, ACTIVITY_IDLE);
+  request_new_unit_activity(punit, ACTIVITY_IDLE, 0);
 
 }
 
@@ -496,7 +514,7 @@ function set_unit_focus_and_activate(punit)
 **************************************************************************/
 function city_dialog_activate_unit(punit)
 {
-  request_new_unit_activity(punit, ACTIVITY_IDLE);
+  request_new_unit_activity(punit, ACTIVITY_IDLE, 0);
   close_city_dialog();
   set_unit_focus_and_redraw(punit);
 }
@@ -683,6 +701,10 @@ civclient_handle_key(keyboard_key, key_code, ctrl, alt, shift)
         activate_goto();
       }
     break;
+
+    case 'H':
+      key_unit_homecity();
+    break;
       
     case 'X':
       key_unit_auto_explore();
@@ -725,10 +747,6 @@ civclient_handle_key(keyboard_key, key_code, ctrl, alt, shift)
 
     case 'D':
       if (alt) show_debug_info(); 
-    break;
-
-    case 'L':
-      key_unit_railroad();
     break;
 
   };
@@ -794,7 +812,11 @@ function activate_goto()
     }
 
     if (intro_click_description) {
-      add_chatbox_text("Click on the tile to send this unit to.");
+      if (is_touch_device()) {
+        add_chatbox_text("Carefully drag unit to the tile you want it to go to.");
+      } else {
+        add_chatbox_text("Click on the tile to send this unit to.");
+      }
       intro_click_description = false;
     }
 
@@ -851,7 +873,7 @@ function key_unit_auto_explore()
   var funits = get_units_in_focus();
   for (var i = 0; i < funits.length; i++) {
     var punit = funits[i]; 
-    request_new_unit_activity(punit, ACTIVITY_EXPLORE);
+    request_new_unit_activity(punit, ACTIVITY_EXPLORE, 0);
   }  
   update_unit_focus();
 }
@@ -872,7 +894,7 @@ function key_unit_sentry()
   var funits = get_units_in_focus();
   for (var i = 0; i < funits.length; i++) {
     var punit = funits[i]; 
-    request_new_unit_activity(punit, ACTIVITY_SENTRY);
+    request_new_unit_activity(punit, ACTIVITY_SENTRY, 0);
   }  
   update_unit_focus();
 }
@@ -885,7 +907,7 @@ function key_unit_fortify()
   var funits = get_units_in_focus();
   for (var i = 0; i < funits.length; i++) {
     var punit = funits[i]; 
-    request_new_unit_activity(punit, ACTIVITY_FORTIFYING);
+    request_new_unit_activity(punit, ACTIVITY_FORTIFYING, 0);
   }  
   update_unit_focus();
 }
@@ -898,7 +920,7 @@ function key_unit_irrigate()
   var funits = get_units_in_focus();
   for (var i = 0; i < funits.length; i++) {
     var punit = funits[i]; 
-    request_new_unit_activity(punit, ACTIVITY_IRRIGATE);
+    request_new_unit_activity(punit, ACTIVITY_IRRIGATE, 0);
   }  
   update_unit_focus();
 }
@@ -911,7 +933,7 @@ function key_unit_pillage()
   var funits = get_units_in_focus();
   for (var i = 0; i < funits.length; i++) {
     var punit = funits[i]; 
-    request_new_unit_activity(punit, ACTIVITY_PILLAGE);
+    request_new_unit_activity(punit, ACTIVITY_PILLAGE, EXTRA_NONE);
   }  
   update_unit_focus();
 }
@@ -924,35 +946,48 @@ function key_unit_mine()
   var funits = get_units_in_focus();
   for (var i = 0; i < funits.length; i++) {
     var punit = funits[i]; 
-    request_new_unit_activity(punit, ACTIVITY_MINE);
+    request_new_unit_activity(punit, ACTIVITY_MINE, 0);
   }  
   update_unit_focus();
 }
 
 /**************************************************************************
- Tell the units in focus to build road.  
+ Tell the units in focus to build road or railroad.  
 **************************************************************************/
 function key_unit_road()
 {
   var funits = get_units_in_focus();
   for (var i = 0; i < funits.length; i++) {
     var punit = funits[i]; 
-    request_new_unit_activity_road(punit, ACTIVITY_GEN_ROAD, 0);
+    var ptile = index_to_tile(punit['tile']);
+    if (!tile_has_road(ptile, ROAD_ROAD)) {
+      request_new_unit_activity(punit, ACTIVITY_GEN_ROAD, extras['Road']['id']);
+    } else if (tile_has_road(ptile, ROAD_ROAD) 
+               && !tile_has_road(ptile, ROAD_RAIL)) {
+      request_new_unit_activity(punit, ACTIVITY_GEN_ROAD, extras['Railroad']['id']);
+    }
   }
   update_unit_focus();
 }
 
 /**************************************************************************
- Tell the units in focus to build railroads.  
+ Changes unit homecity to the city on same tile.
 **************************************************************************/
-function key_unit_railroad()
+function key_unit_homecity()
 {
   var funits = get_units_in_focus();
   for (var i = 0; i < funits.length; i++) {
     var punit = funits[i]; 
-    request_new_unit_activity(punit, ACTIVITY_GEN_ROAD, 1);
-  }  
-  update_unit_focus();
+    var ptile = index_to_tile(punit['tile']);
+    var pcity = tile_city(ptile);
+
+    if (pcity != null) {
+      var packet = {"type" : packet_unit_change_homecity, "unit_id" : punit['id'],
+                "city_id" : pcity['id']};
+      send_request (JSON.stringify(packet));
+    }
+
+  }
 }
 
 
@@ -975,35 +1010,14 @@ function key_unit_auto_settle()
 /**************************************************************************
  ...
 **************************************************************************/
-function request_new_unit_activity(punit, activity)
+function request_new_unit_activity(punit, activity, target)
 {
 
   var packet = {"type" : packet_unit_change_activity, "unit_id" : punit['id'],
-                "activity" : activity, "activity_target" : S_LAST };
+                "activity" : activity, "target" : target };
   send_request (JSON.stringify(packet));
 }
 
-/**************************************************************************
- ...
-**************************************************************************/
-function request_new_unit_activity_base(punit, activity, base)
-{
-
-  var packet = {"type" : packet_unit_change_activity_base, "unit_id" : punit['id'],
-                "activity" : activity, "activity_base" : base };
-  send_request (JSON.stringify(packet));
-}
-
-/**************************************************************************
- ...
-**************************************************************************/
-function request_new_unit_activity_road(punit, activity, road)
-{
-
-  var packet = {"type" : packet_unit_change_activity_road, "unit_id" : punit['id'],
-                "activity" : activity, "activity_road" : road };
-  send_request (JSON.stringify(packet));
-}
 
 /****************************************************************************
   Call to request (from the server) that the settler unit is put into
@@ -1215,7 +1229,7 @@ function popup_caravan_dialog(punit, traderoute, wonder)
   $("<div id='caravan_dialog_" + punit['id'] + "'></div>").appendTo("div#game_page");
 
   var homecity = cities[punit['homecity']];
-  var ptile = index_to_tile(punit['index']);
+  var ptile = index_to_tile(punit['tile']);
   var pcity = tile_city(ptile);
 
 

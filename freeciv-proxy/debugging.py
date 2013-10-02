@@ -19,6 +19,7 @@ import traceback
 from time import gmtime, strftime
 import os, platform
 import time
+from tornado import version as tornado_version
 
 _proc_status = '/proc/%d/status' % os.getpid()
 
@@ -47,6 +48,8 @@ def get_debug_info(civcoms):
       platform.system(),
       cpu));
 
+  code += ("Tornado version %s <br>" % (tornado_version));
+
   try:
     f = open("/proc/loadavg");
     contents = f.read();
@@ -63,7 +66,7 @@ def get_debug_info(civcoms):
 
     code += ("<h3>Logged in users  (count %i) :</h3>" % len(civcoms));
     for key in list(civcoms.keys()):
-      code += ("username: <b>%s</b> <br>Civserver: (%d)<br>Connect time: %d<br><br>" % (civcoms[key].username, civcoms[key].civserverport,   time.time() - civcoms[key].connect_time));
+      code += ("username: <b>%s</b> <br>IP:%s <br>Civserver: (%d)<br>Connect time: %d<br><br>" % (civcoms[key].username, civcoms[key].civwebserver.ip, civcoms[key].civserverport,   time.time() - civcoms[key].connect_time));
        
 
  

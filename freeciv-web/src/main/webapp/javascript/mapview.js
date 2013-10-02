@@ -35,10 +35,12 @@ var height_offset = 67;
 var width_offset = 10;
 
 var canvas_text_font = "12pt Arial"; // with canvas text support
-var mozDashSupport = false; 
 var fontsize = 12;
 
 var fullfog = [];
+
+var dashedSupport = false;
+var mozDashSupport = false; 
 
 
 /**************************************************************************
@@ -59,6 +61,9 @@ function init_mapview()
     mapview_canvas_ctx.mozImageSmoothingEnabled = false;
   } 
   
+  dashedSupport = ("setLineDash" in mapview_canvas_ctx);
+  mozDashSupport = ("mozDash" in mapview_canvas_ctx);
+
   setup_window_size();  
 
   mapview['gui_x0'] = 0;
@@ -91,10 +96,9 @@ function init_mapview()
   
   init_sprites();
 
-  /* Adds dashedLine() to canvas context. */
-  mozDashSupport = "mozDash" in mapview_canvas_ctx;
-
-  if (!mozDashSupport && window.CanvasRenderingContext2D && CanvasRenderingContext2D.prototype.lineTo){
+  if (!(dashedSupport || mozDashSupport) 
+     && window.CanvasRenderingContext2D 
+     && CanvasRenderingContext2D.prototype.lineTo) {
     CanvasRenderingContext2D.prototype.dashedLine = function(x,y,x2,y2,dashArray){
     if (!dashArray) dashArray=[10,5];
       var dashCount = dashArray.length;
@@ -116,6 +120,7 @@ function init_mapview()
       this.moveTo(0,0);
     }
   }
+
 
 }
 
@@ -169,7 +174,7 @@ function setup_window_size ()
 
 
   /* dynamically reduce content in top meny according to content*/
-  while ($(window).width() - sum_width() < 20) {
+  while ($(window).width() - sum_width() < 30) {
     if (i == 0) $("#freeciv_logo").width(40);
     if (i == 1) $("#hel_tab").hide();
 
@@ -297,6 +302,9 @@ function init_cache_sprites()
   }
 
   sprites_init = true;
+  tileset_images[0] = null;
+  tileset_images[1] = null;
+  delete tileset_images;
 
  }  catch(e) {
   console.log("Problem caching sprite: " + tile_tag);
@@ -332,9 +340,6 @@ function drawPath(ctx, x1, y1, x2, y2, x3, y3, x4, y4)
 function drawGotoLine(ctx, x1, y1, x2, y2)
 {
     ctx.strokeStyle = '#f00';
-    if (mozDashSupport) {
-      ctx.mozDash = null;
-    }
     ctx.lineWidth = 2;
     ctx.beginPath(); 
     ctx.moveTo(x1, y1);
@@ -383,10 +388,6 @@ function mapview_put_city_text(pcanvas, text, canvas_x, canvas_y) {
 
 /**************************************************************************
   Renders the national border lines onto the canvas.
-
-  Note that pcanvas.dashedLine is a custom dashed line implementation,
-  while pcanvas.mozDash is an experimental line implementation 
-  found in development versions of Firefox.
 **************************************************************************/
 function mapview_put_border_line(pcanvas, dir, color, canvas_x, canvas_y) {
   var x = canvas_x + 47;
@@ -395,35 +396,34 @@ function mapview_put_border_line(pcanvas, dir, color, canvas_x, canvas_y) {
   pcanvas.strokeStyle = color;
   pcanvas.lineWidth = 2;
 
-  if (mozDashSupport) {
-    pcanvas.mozDash = [4, 4];
-  } else {
-    pcanvas.lineCap = 'butt';
-  }
+  pcanvas.lineCap = 'butt';
+  if (dashedSupport) pcanvas.setLineDash([4,4]);
+  if (mozDashSupport) pcanvas.mozDash = [4, 4];
+
   pcanvas.beginPath();
   if (dir == DIR8_NORTH) {
-    if (mozDashSupport) {
+    if (dashedSupport || mozDashSupport) {
       pcanvas.moveTo(x, y - 2, x + (tileset_tile_width / 2));
       pcanvas.lineTo(x + (tileset_tile_width / 2),  y + (tileset_tile_height / 2) - 2);
     } else {
       pcanvas.dashedLine(x, y - 2, x + (tileset_tile_width / 2),  y + (tileset_tile_height / 2) - 2, [4, 4]);
     }
   } else if (dir == DIR8_EAST) {
-    if (mozDashSupport) {
+    if (dashedSupport || mozDashSupport) {
       pcanvas.moveTo(x - 3, y + tileset_tile_height - 3);
       pcanvas.lineTo(x + (tileset_tile_width / 2) - 3,  y + (tileset_tile_height / 2) - 3);
     } else {
       pcanvas.dashedLine(x - 3, y + tileset_tile_height - 3, x + (tileset_tile_width / 2) - 3,  y + (tileset_tile_height / 2) - 3, [4, 4]);
     }
   } else if (dir == DIR8_SOUTH) {
-    if (mozDashSupport) {
+    if (dashedSupport || mozDashSupport) {
       pcanvas.moveTo(x - (tileset_tile_width / 2) + 3, y + (tileset_tile_height / 2) - 3);
       pcanvas.lineTo(x + 3,  y + tileset_tile_height - 3);
     } else {
       pcanvas.dashedLine(x - (tileset_tile_width / 2) + 3, y + (tileset_tile_height / 2) - 3, x + 3,  y + tileset_tile_height - 3, [4, 4]);
     }
   } else if (dir == DIR8_WEST) {
-    if (mozDashSupport) {
+    if (dashedSupport || mozDashSupport) {
       pcanvas.moveTo(x - (tileset_tile_width / 2) + 3, y + (tileset_tile_height / 2) - 3);
       pcanvas.lineTo(x + 3,  y - 3);
     } else {
@@ -432,6 +432,8 @@ function mapview_put_border_line(pcanvas, dir, color, canvas_x, canvas_y) {
   }
   pcanvas.closePath();
   pcanvas.stroke();
+  if (dashedSupport) pcanvas.setLineDash(null);
+  if (mozDashSupport) pcanvas.mozDash = null;
   
     
 }

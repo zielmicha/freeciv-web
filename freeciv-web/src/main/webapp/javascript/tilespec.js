@@ -22,6 +22,8 @@ var DIR4_TO_DIR8 = [ DIR8_NORTH, DIR8_SOUTH, DIR8_EAST, DIR8_WEST];
 var current_select_sprite = 0;
 var max_select_sprite = 4;
 
+var explosion_anim_map = {};
+
 /* Items on the mapview are drawn in layers.  Each entry below represents
  * one layer.  The names are basically arbitrary and just correspond to
  * groups of elements in fill_sprite_array().  Callers of fill_sprite_array
@@ -208,8 +210,40 @@ function fill_sprite_array(layer, ptile, pedge, pcorner, punit, pcity, citymode)
 	    /* TODO: Special case for drawing the selection rectangle.  The blinking
 	    * unit is handled separately, inside get_drawable_unit(). */
         sprite_array = sprite_array.concat(fill_unit_sprite_array(punit, stacked, backdrop));
-      
+     
     }
+
+    /* show explosion animation on current tile.*/
+     if (ptile != null && explosion_anim_map[ptile['index']] != null) {
+       var explode_step = explosion_anim_map[ptile['index']];
+       explosion_anim_map[ptile['index']] =  explode_step - 1;
+       if (explode_step > 20) {
+         sprite_array.push({"key" : "explode.unit_0", 
+           "offset_x" : unit_offset_x,
+           "offset_y" : unit_offset_y});
+       } else if (explode_step > 15) {
+         sprite_array.push({"key" : "explode.unit_1", 
+           "offset_x" : unit_offset_x,
+           "offset_y" : unit_offset_y});
+       } else if (explode_step > 20) {
+         sprite_array.push({"key" : "explode.unit_2", 
+           "offset_x" : unit_offset_x,
+           "offset_y" : unit_offset_y});
+       } else if (explode_step > 10) {
+         sprite_array.push({"key" : "explode.unit_3", 
+           "offset_x" : unit_offset_x,
+           "offset_y" : unit_offset_y});
+       } else if (explode_step > 0) {
+         sprite_array.push({"key" : "explode.unit_4", 
+           "offset_x" : unit_offset_x,
+           "offset_y" : unit_offset_y});
+       } else {
+         delete explosion_anim_map[ptile['index']];
+       }
+
+     }
+
+
     break;
 
     case LAYER_FOG:
@@ -615,7 +649,7 @@ function get_border_line_sprites(ptile)
         && ptile['owner'] != null 
         && ptile['owner'] != 255 
 	&& ptile['owner'] != checktile['owner']) {
-      var pnation = nations[ptile['owner']];
+      var pnation = nations[players[ptile['owner']]['nation']];
       result.push({"key" : "border", "dir" : dir,
                    "color": pnation['color']});
     }
@@ -995,6 +1029,28 @@ function get_improvement_image_sprite(pimprovement)
             "height" : height
             };
 } 
+
+/****************************************************************************
+ ...
+****************************************************************************/
+function get_specialist_image_sprite(tag)
+{
+  if (tileset[tag] == null) return null;
+  
+  var tileset_x = tileset[tag][0];
+  var tileset_y = tileset[tag][1];
+  var width = tileset[tag][2];
+  var height = tileset[tag][3];
+  var i = tileset[tag][4];
+  return {"tag": tag, 
+            "image-src" : "/tileset/freeciv-web-tileset-" + i + ".png",
+            "tileset-x" : tileset_x,
+            "tileset-y" : tileset_y,
+            "width" : width,
+            "height" : height
+            };
+}    
+
 
 /****************************************************************************
  ...

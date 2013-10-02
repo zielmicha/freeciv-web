@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Freeciv is a Free and Open Source empire-building strategy game">
     <meta name="author" content="The Freeciv project">
+    <meta name="apple-mobile-web-app-capable" content="yes">
 
     <!-- Le styles -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
@@ -13,10 +14,13 @@
       body {
         padding-top: 60px;
         padding-bottom: 40px;
+	background-image:url('/images/bg.jpg');
+
       }
     </style>
     <link href="css/bootstrap-responsive.min.css" rel="stylesheet">
 <link rel="shortcut icon" href="images/freeciv-shortcut-icon.png" />
+<link rel="apple-touch-icon" href="/images/freeciv-splash2.png" />
 <link type="text/css" href="/css/jquery-ui.custom.min.css" rel="stylesheet" />
 <script type="text/javascript" src="/javascript-compressed/jquery.min.js"></script>
 <script type="text/javascript" src="/javascript/jquery-ui.custom.min.js"></script>
@@ -52,12 +56,11 @@
 	<a href="/" style="padding: 3px; float: left;"><img src="/images/freeciv-web-logo.png" alt="The Freeciv Project"></a>
           <div class="nav-collapse collapse">
             <ul class="nav">
-              <li><a href="/">Home</a></li>
-              <li class="active"><a href="/wireframe.jsp?do=menu">Play Online</a></li>
+              <li><a href="/">Play Freeciv!</a></li>
               <li><a href="http://www.freeciv.org/wiki/">Wiki</a></li>
               <li><a href="/meta/metaserver.php">Current Games</a></li>
               <li><a href="http://forum.freeciv.org">Forum</a></li>
-              <li><a href="http://github.com/cazfi/freeciv-web">Development</a></li>
+              <li><a href="http://github.com/freeciv/freeciv-web">Development</a></li>
               <li><a href="http://freeciv.wikia.com/wiki/Donations">Donate!</a></li>
 
             </ul>

@@ -17,6 +17,12 @@ var city_rules = {};
 
 var active_city = null;
 
+var FEELING_BASE = 0;		/* before any of the modifiers below */
+var FEELING_LUXURY = 1;		/* after luxury */
+var FEELING_EFFECT = 2;		/* after building effects */
+var FEELING_NATIONALITY = 3;  	/* after citizen nationality effects */
+var FEELING_MARTIAL = 4;	/* after units enforce martial order */
+var FEELING_FINAL = 5;		/* after wonders (final result) */
 
 /**************************************************************************
  ...
@@ -103,7 +109,10 @@ function show_city_dialog(pcity)
   
   
   $("#city_heading").html(unescape(pcity['name']));
-  $("#city_size").html("City size: " + pcity['size']);
+  $("#city_size").html("Population: " + numberWithCommas(city_population(pcity)*1000) + "<br>" 
+                       + "Size: " + pcity['size'] + "<br>"
+                       + "Granary: " + pcity['food_stock'] + "/" + pcity['granary_size'] + "<br>"
+                       + "Change in: " + city_turns_to_growth_text(pcity));
   
   if (pcity['production_kind'] == VUT_UTYPE) {
     var punit_type = unit_types[pcity['production_value']];
@@ -180,6 +189,42 @@ function show_city_dialog(pcity)
   $("#city_luxury").html(pcity['prod'][4]);
   $("#city_science").html(pcity['prod'][5]);
 
+  /* Handle citizens and specialists */
+  var specialist_html = "";
+  var citizen_types = ["angry", "unhappy", "content", "happy"];
+  for (var s = 0; s < citizen_types.length; s++) {
+    for (var i = 0; i < pcity['ppl_' + citizen_types[s]][FEELING_FINAL]; i ++) {
+     var sprite = get_specialist_image_sprite("citizen." + citizen_types[s] + "_" 
+         + (i % 2));
+     specialist_html = specialist_html +
+     "<div class='specialist_item' style='background: transparent url(" 
+           + sprite['image-src'] +
+           ");background-position:-" + sprite['tileset-x'] + "px -" + sprite['tileset-y'] 
+           + "px;  width: " + sprite['width'] + "px;height: " + sprite['height'] + "px;float:left; '"
+           +" title='One " + citizen_types[s] + " citizen'></div>";
+    }
+  }
+
+  for (var i = 0; i < pcity['specialists_size']; i++) {
+    var spec_type_name = specialists[i]['plural_name'];
+    var spec_gfx_key = "specialist." + specialists[i]['rule_name'] + "_0";
+    for (var s = 0; s < pcity['specialists'][i]; s++) {
+     var sprite = get_specialist_image_sprite(spec_gfx_key);
+     specialist_html = specialist_html +
+     "<div class='specialist_item' style='cursor:pointer;cursor:hand; background: transparent url(" 
+           + sprite['image-src'] +
+           ");background-position:-" + sprite['tileset-x'] + "px -" + sprite['tileset-y'] 
+           + "px;  width: " + sprite['width'] + "px;height: " + sprite['height'] + "px;float:left; '"
+           + " onclick='city_change_specialist(" + pcity['id'] + "," + specialists[i]['id'] + ");'"
+           +" title='" + spec_type_name + " (click to change)'></div>";
+
+    }
+  }
+  specialist_html += "<div style='clear: both;'></div>";
+  $("#specialist_panel").html(specialist_html);
+
+  $("#buy_button").button(city_can_buy(pcity) ? "enable" : "disable");
+
 }
 
 /**************************************************************************
@@ -189,6 +234,7 @@ function change_city_production_dialog()
 {
 
   var pcity = active_city;
+  var turns_to_complete = FC_INFINITY;
 
   // reset dialog page.
   $("#dialog").remove();
@@ -287,7 +333,7 @@ function change_city_production_dialog()
 			width: is_small_screen() ? "95%" : "60%",
 			buttons: {
 				"Buy": function() {
-						send_city_buy();
+						request_city_buy();
 						$(this).dialog('close');
 				},
 				"Close": function() {
@@ -296,8 +342,10 @@ function change_city_production_dialog()
 				}
 			}
 		});
-	
+
   $("#dialog").dialog('open');		
+  
+  if (!city_can_buy(pcity)) $(".ui-dialog-buttonpane button:contains('Buy')").button("disable");	
 
 }
 
@@ -372,6 +420,66 @@ function city_turns_to_build(pcity,
 }
 
 /**************************************************************************
+ Show buy production in city dialog
+**************************************************************************/
+function request_city_buy()
+{
+  var pcity = active_city;
+  var pplayer = client.conn.playing;
+
+  // reset dialog page.
+  $("#dialog").remove();
+  $("<div id='dialog'></div>").appendTo("div#game_page");
+  var buy_price_string = "";
+  var buy_question_string = "";
+
+  if (pcity['production_kind'] == VUT_UTYPE) {
+    var punit_type = unit_types[pcity['production_value']];
+    buy_price_string = punit_type['name'] + " costs " + pcity['buy_gold_cost'] + " gold.";
+    buy_question_string = "Buy " + punit_type['name'] + " for " + pcity['buy_gold_cost'] + " gold?";
+  } else {
+    var improvement = improvements[pcity['production_value']];
+    buy_price_string = improvement['name'] + " costs " + pcity['buy_gold_cost'] + " gold.";
+    buy_question_string = "Buy " + improvement['name'] + " for " + pcity['buy_gold_cost'] + " gold?";
+  }
+
+  var treasury_text = "<br>Treasury contains " + pplayer['gold'] + " gold.";
+
+  if (pcity['buy_gold_cost'] > pplayer['gold']) {
+    show_dialog_message("Buy It!", 
+      buy_price_string + treasury_text);
+    return;
+  }
+
+  var dhtml = buy_question_string + treasury_text;
+
+
+  $("#dialog").html(dhtml);
+
+  $("#dialog").attr("title", "Buy It!");
+  $("#dialog").dialog({
+			bgiframe: true,
+			modal: true,
+			width: is_small_screen() ? "95%" : "50%",
+			buttons: {
+				"Yes": function() {
+						send_city_buy();
+						$(this).dialog('close');
+				},
+				"No": function() {
+						$(this).dialog('close');
+
+				}
+			}
+		});
+	
+  $("#dialog").dialog('open');		
+
+
+}
+
+
+/**************************************************************************
  Buy whatever is being built in the city.
 **************************************************************************/
 function send_city_buy()
@@ -381,6 +489,7 @@ function send_city_buy()
     send_request (JSON.stringify(packet));
   }
 }
+
 /**************************************************************************
  Change city production.
 **************************************************************************/
@@ -479,7 +588,6 @@ function city_name_dialog(suggested_name, unit_id) {
 			buttons: [	{
 					text: "Cancel",
 				        click: function() {
-						$(this).dialog('Cancel');
 						$("#city_name_dialog").remove();
         					keyboard_input=true;
 					}
@@ -554,6 +662,24 @@ function city_sell_improvement(improvement_id)
 }
 
 /**************************************************************************
+  Create text describing city growth. 
+**************************************************************************/
+function city_turns_to_growth_text(pcity)
+{
+  var turns = pcity['granary_turns'];
+
+  if (turns == 0) {
+    return "blocked";
+  } else if (turns > 1000000) {
+    return "never";
+  } else if (turns < 0) {
+    return "Starving in " + Math.abs(turns) + " turns";
+  } else {
+    return turns + " turns";
+  }
+}
+
+/**************************************************************************
   Converts from coordinate offset from city center (dx, dy),
   to index in the city_info['food_output'] packet.
 **************************************************************************/
@@ -584,4 +710,40 @@ function get_city_dxy_to_index(dx, dy)
 
   return city_tile_map[" "+dx+""+dy];
 
+}
+
+
+/**************************************************************************
+...
+**************************************************************************/
+function city_change_specialist(city_id, from_specialist_id)
+{
+  var city_message = {"type": packet_city_change_specialist, 
+                       "city_id" : city_id,
+                       "from" : from_specialist_id,
+                       "to" : (from_specialist_id + 1) % 3};
+  send_request(JSON.stringify(city_message));
+
+}
+
+
+/**************************************************************************
+...  (simplified)
+**************************************************************************/
+function city_can_buy(pcity)
+{
+  var improvement = improvements[pcity['production_value']];
+
+  return (!pcity['did_buy'] && pcity['turn_founded'] != game_info['turn']
+          && improvement['name'] != "Coinage");
+
+}
+
+/**************************************************************************
+ Returns how many thousand citizen live in this city.
+**************************************************************************/
+function city_population(pcity)
+{
+  /*  Sum_{i=1}^{n} i  ==  n*(n+1)/2  */
+  return pcity['size'] * (pcity['size'] + 1) * 5;
 }
