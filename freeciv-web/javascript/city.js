@@ -1,4 +1,4 @@
-/********************************************************************** 
+/**********************************************************************
  Freeciv - Copyright (C) 2009 - Andreas Røsdal   andrearo@pvv.ntnu.no
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ var FEELING_FINAL = 5;		/* after wonders (final result) */
 function city_tile(pcity)
 {
   if (pcity == null) return null;
-  
+
   return index_to_tile(pcity['tile'])
 }
 
@@ -57,9 +57,9 @@ function city_owner(pcity)
 function remove_city(pcity_id)
 {
  if (pcity_id == null) return;
- 
+
  delete cities[city_id];
- 
+
 }
 
 /**************************************************************************
@@ -67,7 +67,7 @@ function remove_city(pcity_id)
 **************************************************************************/
 function is_city_center(city, tile) {
   return (city['tile'] == tile['index']);
-} 
+}
 
 /**************************************************************************
  ...
@@ -92,13 +92,13 @@ function show_city_dialog(pcity)
 {
   var turns_to_complete = FC_INFINITY;
   active_city = pcity;
-  
+
   if (pcity == null) return;
-  $("#dialog").dialog('close');	 
+  $("#dialog").dialog('close');
   set_city_mapview_active();
   center_tile_mapcanvas(city_tile(pcity));
   update_map_canvas(0, 0, mapview['store_width'], mapview['store_height']);
- 
+
   $("#tabs-map").addClass("ui-tabs-hide");
   $("#tabs-map").hide();
   $("#tabs-cit").removeClass("ui-tabs-hide");
@@ -106,18 +106,18 @@ function show_city_dialog(pcity)
   $("#map_tab").removeClass("ui-state-active");
   $("#map_tab").removeClass("ui-tabs-selected");
   $("#map_tab").addClass("ui-state-default");
-  
-  
+
+
   $("#city_heading").html(unescape(pcity['name']));
-  $("#city_size").html("Population: " + numberWithCommas(city_population(pcity)*1000) + "<br>" 
+  $("#city_size").html("Population: " + numberWithCommas(city_population(pcity)*1000) + "<br>"
                        + "Size: " + pcity['size'] + "<br>"
                        + "Granary: " + pcity['food_stock'] + "/" + pcity['granary_size'] + "<br>"
                        + "Change in: " + city_turns_to_growth_text(pcity));
-  
+
   if (pcity['production_kind'] == VUT_UTYPE) {
     var punit_type = unit_types[pcity['production_value']];
-    $("#city_production_overview").html("Producing: " + punit_type['name']);   
-    turns_to_complete = city_turns_to_build(pcity, punit_type, true); 
+    $("#city_production_overview").html("Producing: " + punit_type['name']);
+    turns_to_complete = city_turns_to_build(pcity, punit_type, true);
   }
 
   if (pcity['production_kind'] == VUT_IMPROVEMENT) {
@@ -134,7 +134,7 @@ function show_city_dialog(pcity)
     $("#city_production_turns_overview").html("-");
   }
 
-  
+
   var improvements_html = "";
   for (var z = 0; z < pcity['improvements'].length; z ++) {
     if (pcity['improvements'][z] == 1) {
@@ -143,38 +143,38 @@ function show_city_dialog(pcity)
          console.log("Missing sprite for improvement " + z);
          continue;
        }
-      
+
       improvements_html = improvements_html +
-       "<div id='city_improvement_element'><div style='background: transparent url(" 
+       "<div id='city_improvement_element'><div style='background: transparent url("
            + sprite['image-src'] +
-           ");background-position:-" + sprite['tileset-x'] + "px -" + sprite['tileset-y'] 
+           ");background-position:-" + sprite['tileset-x'] + "px -" + sprite['tileset-y']
            + "px;  width: " + sprite['width'] + "px;height: " + sprite['height'] + "px;float:left; '"
-           + "title='" + improvements[z]['helptext'] + "' " 
+           + "title='" + improvements[z]['helptext'] + "' "
 	   + "onclick='city_sell_improvement(" + z + ");'>"
            +"</div>" + improvements[z]['name'] + "</div>";
     }
   }
   $("#city_improvements_list").html(improvements_html);
-  
-  
-  
+
+
+
   var punits = tile_units(city_tile(pcity));
   if (punits != null) {
     var present_units_html = "";
     for (var r = 0; r < punits.length; r++) {
       var punit = punits[r];
-      var ptype = unit_type(punit);   
+      var ptype = unit_type(punit);
       var sprite = get_unit_image_sprite(punit);
       if (sprite == null) {
          console.log("Missing sprite for " + punit);
          continue;
        }
 
-      
+
       present_units_html = present_units_html +
-       "<div id='game_unit_list_item' style='cursor:pointer;cursor:hand; background: transparent url(" 
+       "<div id='game_unit_list_item' style='cursor:pointer;cursor:hand; background: transparent url("
            + sprite['image-src'] +
-           ");background-position:-" + sprite['tileset-x'] + "px -" + sprite['tileset-y'] 
+           ");background-position:-" + sprite['tileset-x'] + "px -" + sprite['tileset-y']
            + "px;  width: " + sprite['width'] + "px;height: " + sprite['height'] + "px;float:left; '"
            + " onclick='city_dialog_activate_unit(units[" + punit['id'] + "]);'"
            +"></div>";
@@ -194,12 +194,12 @@ function show_city_dialog(pcity)
   var citizen_types = ["angry", "unhappy", "content", "happy"];
   for (var s = 0; s < citizen_types.length; s++) {
     for (var i = 0; i < pcity['ppl_' + citizen_types[s]][FEELING_FINAL]; i ++) {
-     var sprite = get_specialist_image_sprite("citizen." + citizen_types[s] + "_" 
+     var sprite = get_specialist_image_sprite("citizen." + citizen_types[s] + "_"
          + (i % 2));
      specialist_html = specialist_html +
-     "<div class='specialist_item' style='background: transparent url(" 
+     "<div class='specialist_item' style='background: transparent url("
            + sprite['image-src'] +
-           ");background-position:-" + sprite['tileset-x'] + "px -" + sprite['tileset-y'] 
+           ");background-position:-" + sprite['tileset-x'] + "px -" + sprite['tileset-y']
            + "px;  width: " + sprite['width'] + "px;height: " + sprite['height'] + "px;float:left; '"
            +" title='One " + citizen_types[s] + " citizen'></div>";
     }
@@ -211,9 +211,9 @@ function show_city_dialog(pcity)
     for (var s = 0; s < pcity['specialists'][i]; s++) {
      var sprite = get_specialist_image_sprite(spec_gfx_key);
      specialist_html = specialist_html +
-     "<div class='specialist_item' style='cursor:pointer;cursor:hand; background: transparent url(" 
+     "<div class='specialist_item' style='cursor:pointer;cursor:hand; background: transparent url("
            + sprite['image-src'] +
-           ");background-position:-" + sprite['tileset-x'] + "px -" + sprite['tileset-y'] 
+           ");background-position:-" + sprite['tileset-x'] + "px -" + sprite['tileset-y']
            + "px;  width: " + sprite['width'] + "px;height: " + sprite['height'] + "px;float:left; '"
            + " onclick='city_change_specialist(" + pcity['id'] + "," + specialists[i]['id'] + ");'"
            +" title='" + spec_type_name + " (click to change)'></div>";
@@ -255,12 +255,12 @@ function change_city_production_dialog()
   var production_list = [];
   for (unit_type_id in unit_types) {
     var punit_type = unit_types[unit_type_id];
-    
+
     /* FIXME: web client doesn't support unit flags yet, so this is a hack: */
     if (punit_type['name'] == "Barbarian Leader" || punit_type['name'] == "Leader") continue;
-    
-    if (can_city_build_unit_now(pcity, punit_type) == true) { 
-      production_list.push({"kind": VUT_UTYPE, "value" : punit_type['id'], 
+
+    if (can_city_build_unit_now(pcity, punit_type) == true) {
+      production_list.push({"kind": VUT_UTYPE, "value" : punit_type['id'],
                             "text" : punit_type['name'],
 	                    "helptext" : punit_type['helptext'],
                             "sprite" : get_unit_type_image_sprite(punit_type)});
@@ -270,8 +270,8 @@ function change_city_production_dialog()
   for (improvement_id in improvements) {
     var pimprovement = improvements[improvement_id];
     if (can_city_build_improvement_now(pcity, pimprovement)) {
-      production_list.push({"kind": VUT_IMPROVEMENT, 
-                            "value" : pimprovement['id'], 
+      production_list.push({"kind": VUT_IMPROVEMENT,
+                            "value" : pimprovement['id'],
                             "text" : pimprovement['name'],
 	                    "helptext" : pimprovement['helptext'],
                             "sprite" : get_improvement_image_sprite(pimprovement) });
@@ -281,35 +281,35 @@ function change_city_production_dialog()
 
   var production_html = "";
   for (var a = 0; a < production_list.length; a++) {
-    var current_prod = (pcity['production_kind'] == production_list[a]['kind'] 
+    var current_prod = (pcity['production_kind'] == production_list[a]['kind']
 	&& pcity['production_value'] == production_list[a]['value']);
-    var sprite = production_list[a]['sprite'];  
+    var sprite = production_list[a]['sprite'];
     if (sprite == null) {
       console.log("Missing sprite for " + production_list[a]['value']);
       continue;
     }
 
-    production_html = production_html 
-     + "<div id='production_list_item' style='" + (current_prod ? "background-color:#777777; text:#000000; border: 1px solid #ffffff;" : "") + "'" 
+    production_html = production_html
+     + "<div id='production_list_item' style='" + (current_prod ? "background-color:#777777; text:#000000; border: 1px solid #ffffff;" : "") + "'"
      + " onclick='send_city_change(" + pcity['id'] + "," + production_list[a]['kind'] + "," + production_list[a]['value'] + ")' "
      + " title='" + production_list[a]['helptext'] + "'>"
-     
-     + "<div id='production_list_item_sub' style=' background: transparent url(" 
+
+     + "<div id='production_list_item_sub' style=' background: transparent url("
            + sprite['image-src'] +
-           ");background-position:-" + sprite['tileset-x'] + "px -" + sprite['tileset-y'] 
+           ");background-position:-" + sprite['tileset-x'] + "px -" + sprite['tileset-y']
            + "px;  width: " + sprite['width'] + "px;height: " + sprite['height'] + "px;'"
            +"></div>"
-      
+
      + production_list[a]['text'] + "</div>";
   }
-  
+
   $("#city_production_choices").html(production_html);
 
 
  if (pcity['production_kind'] == VUT_UTYPE) {
     var punit_type = unit_types[pcity['production_value']];
-    $("#city_production").html("Producing: " + punit_type['name']);   
-    turns_to_complete = city_turns_to_build(pcity, punit_type, true); 
+    $("#city_production").html("Producing: " + punit_type['name']);
+    turns_to_complete = city_turns_to_build(pcity, punit_type, true);
   }
 
   if (pcity['production_kind'] == VUT_IMPROVEMENT) {
@@ -343,15 +343,15 @@ function change_city_production_dialog()
 			}
 		});
 
-  $("#dialog").dialog('open');		
-  
-  if (!city_can_buy(pcity)) $(".ui-dialog-buttonpane button:contains('Buy')").button("disable");	
+  $("#dialog").dialog('open');
+
+  if (!city_can_buy(pcity)) $(".ui-dialog-buttonpane button:contains('Buy')").button("disable");
 
 }
 
 
 /**************************************************************************
-  Return whether given city can build given unit, ignoring whether unit 
+  Return whether given city can build given unit, ignoring whether unit
   is obsolete.
 **************************************************************************/
 function can_city_build_unit_direct(pcity, punittype)
@@ -362,12 +362,12 @@ function can_city_build_unit_direct(pcity, punittype)
 
 
 /**************************************************************************
-  Return whether given city can build given unit; returns FALSE if unit is 
+  Return whether given city can build given unit; returns FALSE if unit is
   obsolete.
 **************************************************************************/
 function can_city_build_unit_now(pcity, punittype)
-{  
-  return (pcity['can_build_unit'][punittype['id']] == "1"); 
+{
+  return (pcity['can_build_unit'][punittype['id']] == "1");
 }
 
 
@@ -376,8 +376,8 @@ function can_city_build_unit_now(pcity, punittype)
   the building is obsolete.
 **************************************************************************/
 function can_city_build_improvement_now(pcity, pimprove)
-{  
-  return (pcity['can_build_improvement'][pimprove['id']] == "1"); 
+{
+  return (pcity['can_build_improvement'][pimprove['id']] == "1");
 }
 
 
@@ -446,7 +446,7 @@ function request_city_buy()
   var treasury_text = "<br>Treasury contains " + pplayer['gold'] + " gold.";
 
   if (pcity['buy_gold_cost'] > pplayer['gold']) {
-    show_dialog_message("Buy It!", 
+    show_dialog_message("Buy It!",
       buy_price_string + treasury_text);
     return;
   }
@@ -472,8 +472,8 @@ function request_city_buy()
 				}
 			}
 		});
-	
-  $("#dialog").dialog('open');		
+
+  $("#dialog").dialog('open');
 
 
 }
@@ -495,11 +495,11 @@ function send_city_buy()
 **************************************************************************/
 function send_city_change(city_id, kind, value)
 {
-  var packet = {"type" : packet_city_change, "city_id" : city_id, 
+  var packet = {"type" : packet_city_change, "city_id" : city_id,
                 "production_kind": kind, "production_value" : value};
   send_request (JSON.stringify(packet));
 
-  
+
 }
 
 /**************************************************************************
@@ -511,13 +511,13 @@ function close_city_dialog()
 }
 
 /**************************************************************************
- Close city dialog, shows/hides appropriate widgets, hides city dialog UI. 
+ Close city dialog, shows/hides appropriate widgets, hides city dialog UI.
 **************************************************************************/
 function city_dialog_remove()
 {
   if (active_city != null) {
-    setup_window_size (); 
-    center_tile_mapcanvas(city_tile(active_city)); 
+    setup_window_size ();
+    center_tile_mapcanvas(city_tile(active_city));
     active_city = null;
 
     $("#tabs-cit").addClass("ui-tabs-hide");
@@ -533,22 +533,22 @@ function do_city_map_click(ptile)
   var packet = null;
   var c_tile = index_to_tile(active_city['tile']);
   if (ptile['worked'] == active_city['id']) {
-    packet = {"type" : packet_city_make_specialist, 
-	         "city_id" : active_city['id'], 
-                 "worker_x" : ptile['x'], 
+    packet = {"type" : packet_city_make_specialist,
+	         "city_id" : active_city['id'],
+                 "worker_x" : ptile['x'],
 		 "worker_y" : ptile['y']};
   } else {
-    packet = {"type" : packet_city_make_worker, 
-	         "city_id" : active_city['id'], 
-                 "worker_x" : ptile['x'], 
+    packet = {"type" : packet_city_make_worker,
+	         "city_id" : active_city['id'],
+                 "worker_x" : ptile['x'],
 		 "worker_y" : ptile['y']};
-  }    
+  }
   send_request (JSON.stringify(packet));
 
 }
 
 /**************************************************************************
-.. 
+..
 **************************************************************************/
 function does_city_have_improvement(pcity, improvement_name)
 {
@@ -575,7 +575,7 @@ function city_name_dialog(suggested_name, unit_id) {
   $("<div id='city_name_dialog'></div>").appendTo("div#game_page");
 
   $("#city_name_dialog").html("<div>What should we call our new city?</div>"
-		  	      + "<input id='city_name_req' type='text' value=" 
+		  	      + "<input id='city_name_req' type='text' value="
 			      + suggested_name + ">");
   $("#city_name_dialog").attr("title", "Build New City");
   $("#city_name_dialog").dialog({
@@ -603,8 +603,8 @@ function city_name_dialog(suggested_name, unit_id) {
 					}
 				]
 		});
-	
-  $("#city_name_dialog").dialog('open');		
+
+  $("#city_name_dialog").dialog('open');
 
   $('#city_name_dialog').keyup(function(e) {
     if (e.keyCode == 13) {
@@ -619,7 +619,7 @@ function city_name_dialog(suggested_name, unit_id) {
 }
 
 /**************************************************************************
-.. 
+..
 **************************************************************************/
 function next_city()
 {
@@ -636,7 +636,7 @@ function next_city()
       is_next = true;
     }
   }
-	
+
   for (city_id in cities) {
     var pcity = cities[city_id];
     if (is_next && city_owner(pcity).playerno == client.conn.playing.playerno) {
@@ -647,14 +647,14 @@ function next_city()
 }
 
 /**************************************************************************
-.. 
+..
 **************************************************************************/
 function city_sell_improvement(improvement_id)
 {
   var agree=confirm("Are you sure you want to sell this building?");
   if (agree) {
 
-    var packet = {"type" : packet_city_sell, "city_id" : active_city['id'], 
+    var packet = {"type" : packet_city_sell, "city_id" : active_city['id'],
                   "build_id": improvement_id};
     send_request (JSON.stringify(packet));
   }
@@ -662,7 +662,7 @@ function city_sell_improvement(improvement_id)
 }
 
 /**************************************************************************
-  Create text describing city growth. 
+  Create text describing city growth.
 **************************************************************************/
 function city_turns_to_growth_text(pcity)
 {
@@ -683,7 +683,7 @@ function city_turns_to_growth_text(pcity)
   Converts from coordinate offset from city center (dx, dy),
   to index in the city_info['food_output'] packet.
 **************************************************************************/
-function get_city_dxy_to_index(dx, dy) 
+function get_city_dxy_to_index(dx, dy)
 {
   city_tile_map = {};
   city_tile_map[" 00"] = 0;
@@ -718,7 +718,7 @@ function get_city_dxy_to_index(dx, dy)
 **************************************************************************/
 function city_change_specialist(city_id, from_specialist_id)
 {
-  var city_message = {"type": packet_city_change_specialist, 
+  var city_message = {"type": packet_city_change_specialist,
                        "city_id" : city_id,
                        "from" : from_specialist_id,
                        "to" : (from_specialist_id + 1) % 3};
@@ -734,7 +734,7 @@ function city_can_buy(pcity)
 {
   var improvement = improvements[pcity['production_value']];
 
-  return (!pcity['did_buy'] && pcity['turn_founded'] != game_info['turn']
+  return (!pcity['did_buy'] && pcity['turn_founded'] != game_info['turn']
           && improvement['name'] != "Coinage");
 
 }
