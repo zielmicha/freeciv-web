@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Freeciv-web</title>
+    <link rel="stylesheet" type="text/css" href="/css/webclient.min.css" />
+    <script type="text/javascript" src="/javascript-compressed/jquery.min.js"></script>
+    <script type="text/javascript" src="/javascript-compressed/webclient.js"></script>
+    <script type="text/javascript" src="/webclient/session.jsp"></script>
+    <link rel="shortcut icon" href="/images/freeciv-shortcut-icon.png" />
+    <link rel="apple-touch-icon" href="/images/freeciv-splash2.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  </head>
+  <body>
+    <div id="pregame_page">
+      <div id="pregame_options">
+        <div id="pregame_buttons">
+          <div id="freeciv_logo" style="cursor:pointer;cursor:hand"
+            onclick="window.open('http://play.freeciv.org/', '_new');">
+          </div>
+          <button type="button" class="button" onClick="pregame_start_game();">Start Game</button>
+          <button type="button" class="button" onClick="leave_pregame();" >Leave Game</button>
+          <button id="observe_button" type="button" class="button" onClick="observe();" >Observe Game</button>
+          <button id="pick_nation_button" type="button" class="button" onClick="pick_nation();" >Pick Nation</button>
+          <button type="button" class="button" onClick="pregame_settings();" >Settings</button>
+        </div>
+      </div>
+      <div id="pregame_player_list"></div>
+      <div id="pregame_message_area"></div>
+      <div id="pregame_chat_box">
+        <input id="pregame_text_input" type="text" name="text_input" onkeydown="javascript:return check_text_input(event,this);"
+          value="Type your messages here."
+          onfocus="keyboard_input=false; if (this.value=='Type your messages here.') this.value='';"
+          onblur="keyboard_input=true; if (this.value=='') this.value='Type your messages here.'"
+          />
+      </div>
+    </div>
+    <div id="pick_nation_dialog" ></div>
+    <div id="game_page" style="display: none;">
+    <div id="tabs">
+      <ul id="tabs_menu">
+        <div id="freeciv_logo" ></div>
+        <li id="map_tab"><a href="#tabs-map">Map</a></li>
+        <li id="civ_tab"><a href="#tabs-civ">Nation</a></li>
+        <li id="tech_tab"><a id="tech_tab_item" href="#tabs-tec">Research</a></li>
+        <li id="players_tab"><a href="#tabs-nat">Players</a></li>
+        <li style="display: none;"><a href="#tabs-cit">City</a></li>
+        <li id="opt_tab"><a href="#tabs-opt">Options</a></li>
+        <li id="chat_tab" style="display:none;"><a href="#tabs-chat">Chat</a></li>
+        <li id="hel_tab"><a href="#tabs-hel">Manual</a></li>
+        <div id="turn_done_button_div">
+          <button id="turn_done_button" type="button"
+            class="button">Turn Done</button>
+        </div>
+      </ul>
+      <div id="tabs-map">
+        <div id="mapview_canvas_div">
+          <div id="canvas_div">
+            <canvas id="canvas" width="1024" height="768" moz-opaque="true"></canvas>
+          </div>
+          <div id="game_chatbox_panel">
+            <div id="game_message_area"></div>
+            <div id="game_chat_box">
+              <input id="game_text_input" type="text" name="text_input" />
+            </div>
+          </div>
+          <div id="game_status_panel"></div>
+          <div id="game_unit_orders_default">
+            <div id="order_goto" class="order_button" title="Go to tile (G)">
+              <a href="#" onclick="check_goto();"><img src="/images/orders/goto_default.png" name="goto_button" alt="" border="0" width="30" height="30"></a>
+            </div>
+            <div id="order_sentry" class="order_button" title="Sentry unit (S)">
+              <a href="#" onclick="key_unit_sentry();"><img src="/images/orders/sentry_default.png" name="sentry_button" alt="" border="0" width="30" height="30"></a>
+            </div>
+            <div id="order_explore" class="order_button" title="Auto explore map (X)">
+              <a href="#" onclick="key_unit_auto_explore();"><img src="/images/orders/auto_explore_default.png" name="auto_explore_button" alt="" border="0" width="30" height="30"></a>
+            </div>
+            <div id="order_fortify" class="order_button" title="Fortify unit (F)">
+              <a href="#" onclick="key_unit_fortify();"><img src="/images/orders/fortify_default.png" name="fortify_button" alt="" border="0" width="30" height="30"></a>
+            </div>
+            <div id="order_pillage" class="order_button" title="Pillage (P)">
+              <a href="#" onclick="key_unit_pillage();"><img src="/images/orders/pillage.png" name="pillage_button" alt="" border="0" width="30" height="30"></a>
+            </div>
+            <div id="order_disband" class="order_button" title="Disband unit">
+              <a href="#" onclick="key_unit_disband();"><img src="/images/orders/disband_default.png" name="disband_button" alt="" border="0" width="30" height="30"></a>
+            </div>
+            <div id="order_build_city" class="order_button" title="Build new city (B)">
+              <a href="#" onclick="request_unit_build_city();"><img src="/images/orders/build_city_default.png" name="build_city_button" alt="" border="0" width="30" height="30"></a>
+            </div>
+            <div id="order_auto_settlers" class="order_button" title="Auto build settler improvements (A)">
+              <a href="#" onclick="key_unit_auto_settle();"><img src="/images/orders/auto_settlers_default.png" name="auto_settlers_button" alt="" border="0" width="30" height="30"></a>
+            </div>
+            <div id="order_irrigate" class="order_button" title="Create irrigation (I)" >
+              <a href="#" onclick="key_unit_irrigate();"><img src="/images/orders/irrigate_default.png" name="irrigate_button" alt="" border="0" width="30" height="30"></a>
+            </div>
+            <div id="order_road" class="order_button" title="Build road (R)">
+              <a href="#" onclick="key_unit_road();"><img src="/images/orders/road_default.png" name="road_button" alt="" border="0" width="30" height="30"></a>
+            </div>
+            <div id="order_railroad" class="order_button" title="Build railroad (R)">
+              <a href="#" onclick="key_unit_road();"><img src="/images/orders/railroad_default.png" name="railroad_button" alt="" border="0" width="30" height="30"></a>
+            </div>
+            <div id="order_mine" class="order_button" title="Build mine (M)">
+              <a href="#" onclick="key_unit_mine();"><img src="/images/orders/mine_default.png" name="mine_button" alt="" border="0" width="30" height="30"></a>
+            </div>
+          </div>
+          <div id="game_unit_orders_settlers" style="display: none;"></div>
+          <div id="game_overview_panel">
+            <div id="game_overview_map">
+              <div id="map_click_div">
+                <img id="overview_map"/>
+              </div>
+            </div>
+          </div>
+          <div id="game_unit_panel">
+            <div id="game_action_panel">
+              &nbsp;
+              <div id="game_unit_info">&nbsp;
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="tabs-civ">
+        <div id="civ_dialog">
+          <h2>Your Nation</h2>
+          <div id="civ_dialog_text"></div>
+          <button id="revolution_button" class="button" type="button" onclick="show_revolution_dialog();">Revolution</button><br>
+          <button id="taxrates_button" class="button" type="button" onclick="show_tax_rates_dialog();">Tax Rates</button><br>
+          <button id="wonders_report" class="button" type="button" onclick="request_report(REPORT_WONDERS_OF_THE_WORLD);">Wonders of the World</button><br>
+          <button id="top_cities_report" class="button" type="button" onclick="request_report(REPORT_TOP_5_CITIES);">Top 5 Cities</button><br>
+          <button id="demography_report" class="button" type="button" onclick="request_report(REPORT_DEMOGRAPHIC);">Demographics</button><br>
+        </div>
+      </div>
+      <div id="tabs-tec">
+        <div id="technology_dialog">
+          <div id="tech_info_box">
+            <div id="tech_goal_box">
+            </div>
+            <div id="tech_progress_box">
+              <span id="tech_progress_text">
+              </span>
+              <div id="progress_bg">
+                <div id="progress_fg">&nbsp;
+                </div>
+              </div>
+            </div>
+            <div id="tech_results">
+              <span id="tech_result_text">
+              </span>
+              <div id="tech_unit_info"></div>
+            </div>
+          </div>
+          <div id="technology_heading"></div>
+          <div id="technologies">
+            <canvas id="tech_canvas" width="5824" height="726" onmousedown="tech_mapview_mouse_click(event)" moz-opaque="true"></canvas>
+          </div>
+        </div>
+      </div>
+      <div id="tabs-nat">
+        <div>
+          <h2>Nations of the World</h2>
+          <div id="nations">
+            <div id="nations_list">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="tabs-cit">
+        <div id="city_viewport">
+          <h2 style="margin: 5px;" id="city_heading"></h2>
+          <div id="specialist_panel">
+          </div>
+          <div class="city_panel">
+            <div id="city_canvas_div">
+              <canvas id="city_canvas" width="350" height="175" moz-opaque="true"></canvas>
+            </div>
+            <div id="city_button_pane">
+              <button type="button" class="button" onClick="close_city_dialog();" >Close</button>
+              <button type="button" class="button" onClick="next_city();" >Next city</button>
+              <button type="button" class="button" onClick="change_city_production_dialog();" >Change production</button>
+              <button id="buy_button" type="button" class="button" onClick="request_city_buy();" >Buy</button>
+            </div>
+          </div>
+          <div class="city_panel">
+            <div id="city_dialog_info">
+              <div><b>City information:</b></div>
+              <div style="float:left;">
+                <span id="city_size"></span>
+                <div id='city_production_overview'></div>
+                <div id='city_production_turns_overview'></div>
+              </div>
+              <div style="float: left; margin-top: -20px; padding-left: 20px;">
+                <table>
+                  <tr>
+                    <td>Food: </td>
+                    <td id="city_food"></td>
+                  </tr>
+                  <tr>
+                    <td>Prod: </td>
+                    <td id="city_prod"></td>
+                  </tr>
+                  <tr>
+                    <td>Trade: </td>
+                    <td id="city_trade"></td>
+                  </tr>
+                  <tr>
+                    <td>Gold:: </td>
+                    <td id="city_gold"></td>
+                  </tr>
+                  <tr>
+                    <td>Luxury: </td>
+                    <td id="city_luxury"></td>
+                  </tr>
+                  <tr>
+                    <td>Science: </td>
+                    <td id="city_science"></td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div id="city_improvements_panel" class="city_panel">
+            <div style="clear: left;"><span>Improvements:</span></div>
+            <div id="city_improvements">
+              <div id="city_improvements_list">
+              </div>
+            </div>
+            <span>Units in City:</span>
+            <div id="city_present_units" >
+              <div id="city_present_units_list">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="tabs-hel">
+        <div id="game_manual" ></div>
+      </div>
+      <div id="tabs-chat">
+      </div>
+      <div id="tabs-opt">
+        <div>
+          <div style="text-align: center;">
+            <center>
+            <h2>Game Options</h2>
+            <div class="main_menu_buttons">
+              <b>Game title:</b> <input type='text' name='metamessage_setting' id='metamessage_setting' size='28' maxlength='42'>
+            </div>
+            <div class="main_menu_buttons">
+              <b>Timeout (seconds per turn):</b> <input type='number' name='timeout_setting' id='timeout_setting' size='6' length='3' min='30' max='3600' step='1'>
+            </div>
+            <div class="main_menu_buttons">
+              <button id="save_button" type="button" class="button" onClick="save_game();" >Save Game</button>
+            </div>
+            <div class="main_menu_buttons">
+              <button id="fullscreen_button" type="button" class="button" onClick="show_fullscreen_window();" >Fullscreen</button>
+            </div>
+            <div class="main_menu_buttons">
+              <button id="surrender_button" type="button" class="button" onClick="surrender_game();" >Surrender Game</button>
+            </div>
+            <div class="main_menu_buttons">
+              <button id="end_button" type="button" class="button" onClick="window.location='/';" >End Game</button>
+            </div>
+            <div class="main_menu_buttons">
+              <button id="show_overview_button" type="button" class="button" onClick="init_overview();" >Show overview map</button>
+            </div>
+            <div class="main_menu_buttons">
+              <button id="show_unit_button" type="button" class="button" onClick="init_game_unit_panel();" >Show unit info box</button>
+            </div>
+            <div class="main_menu_buttons">
+              <button id="show_message_button" type="button" class="button" onClick="init_chatbox();" >Show message box</button>
+            </div>
+            <br>
+            <div id="map_image"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="dialog" ></div>
+    <div id="diplomacy_dialog" ></div>
+    <div id="city_name_dialog" ></div>
+  </body>
+</html>
