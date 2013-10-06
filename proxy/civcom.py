@@ -47,9 +47,8 @@ class CivCom(Thread):
 
     def run(self):
         # setup connection to civserver
-        if (logger.isEnabledFor(logging.INFO)):
-            logger.info(u"Start connection to civserver for " + self.username
-                        + u" from IP " + self.civwebserver.ip)
+        logger.info(u"Start connection to civserver for " + self.username
+                    + u" from IP " + self.civwebserver.ip)
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setblocking(True)
         self.socket.settimeout(2)
@@ -121,9 +120,8 @@ class CivCom(Thread):
             return None
 
     def close_connection(self):
-        if (logger.isEnabledFor(logging.INFO)):
-            logger.info(
-                u"Server connection closed. Removing civcom thread for " + self.username)
+        logger.info(
+            u"Server connection closed. Removing civcom thread for " + self.username)
 
         if (hasattr(self.civwebserver, u"civcoms") and self.key in list(self.civwebserver.civcoms.keys())):
             del self.civwebserver.civcoms[self.key]
@@ -140,9 +138,8 @@ class CivCom(Thread):
             self.send_buffer.append(
                 data.decode(encoding=u"utf-8", errors=u"ignore"))
         except UnicodeDecodeError:
-            if (logger.isEnabledFor(logging.ERROR)):
-                logger.error(
-                    u"Unable to decode string from civcom socket, for user: " + self.username)
+            logger.error(
+                u"Unable to decode string from civcom socket, for user: " + self.username)
             return
 
     # sends packets to client (WebSockets client / browser)
@@ -163,8 +160,7 @@ class CivCom(Thread):
         return result
 
     def send_error_to_client(self, message):
-        if (logger.isEnabledFor(logging.ERROR)):
-            logger.error(message)
+        logger.error(message)
         self.send_buffer_append(
             (u"{\"pid\":18,\"message\":\"" + message + u"\"}").encode(u"utf-8"))
 
