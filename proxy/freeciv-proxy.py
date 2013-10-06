@@ -14,37 +14,21 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 '''
+from tornado import web, websocket, ioloop, httpserver
 
 import time
-from tornado import web, websocket, ioloop, httpserver
 import logging
 import json
 import pprint
+import traceback
 
-import debugging
-import civcom
 import sys
+sys.path.append('../multisock')
+
+import multisock
 
 PROXY_PORT = 8002
-
-class IndexHandler(web.RequestHandler):
-    """
-    Serves the Freeciv-proxy index page
-    """
-
-    def get(self):
-        self.write(
-            u"Freeciv-web websocket proxy, port: " + unicode(PROXY_PORT))
-
-
-class StatusHandler(web.RequestHandler):
-    """
-    Serves the Freeciv-proxy status page, on the url:  /status
-    """
-
-    def get(self):
-        self.write(debugging.get_debug_info(civcom.civcoms))
-
+DISPATCHER = 'tcp:localhost:7001'
 
 class WSHandler(websocket.WebSocketHandler):
     clients = []
@@ -53,62 +37,42 @@ class WSHandler(websocket.WebSocketHandler):
 
     def open(self):
         self.clients.append(self)
-        self.is_ready = False
+        self.channel = None
         self.set_nodelay(True)
+        self.dispatcher = multisock.connect(DISPATCHER)
+        self.dispatcher.get_main_channel().recv.bind(self.write_to_ws)
 
     def on_message(self, message):
-        self.logger.debug('ws message %s', pprint.pformat(json.loads(message)))
-        if not self.is_ready:
-            login_message = json.loads(message)
-            self.username = login_message['username']
-            self.session_id = login_message['session_id']
-            self.ip = self.request.headers.get('X-Real-IP', 'missing')
-            self.login_packet = message
-            self.is_ready = True
-            self.civcom = self.get_civcom()
-            self.civcom.packet_callback = self.write_message
-        else:
+        message = json.loads(message)
+        self.logger.debug('ws message %s', pprint.pformat(message))
+        if not self.channel:
+            self.session_id = message['session_id']
 
-            self.civcom = self.get_civcom()
+        self.relay_message(message)
 
-            if self.civcom:
-                self.civcom.queue_to_civserver(message)
-            else:
-                self.write_message(u"Error: Could not authenticate user.")
+    def relay_message(self, message):
+        data = json.dumps(message)
+        self.dispatcher.get_main_channel().send_async(data)
+
+    def write_to_ws(self, data):
+        ioloop.IOLoop.instance().add_callback(self.write_message, data)
 
     def on_close(self):
-        self.clients.remove(self)
-        if hasattr(self, u'civcom') and self.civcom != None:
-            self.civcom.stopped = True
-            self.civcom.close_connection()
-            if self.civcom.key in list(civcoms.keys()):
-                del civcoms[self.civcom.key]
+        if hasattr(self, 'dispatcher'):
+            self.dispatcher.close()
 
-    def get_civcom(self):
-        return civcom.get_civcom(self.username, self.session_id, self.login_packet)
+def message_recv(data):
+    try:
+        message = json.loads(data)
+        ws_handlers[message['session_id']].write_to_ws(message['message'])
+    except:
+        traceback.print_exc()
 
 if __name__ == u"__main__":
-    try:
-        print u'Started Freeciv-proxy. Use Control-C to exit'
+    application = web.Application([
+        (r'/civsocket', WSHandler),
+    ])
 
-        if len(sys.argv) == 2:
-            PROXY_PORT = int(sys.argv[1])
-        print (u'port: ' + unicode(PROXY_PORT))
-
-        LOG_FILENAME = u'/tmp/logging' + unicode(PROXY_PORT) + u'.out'
-        # logging.basicConfig(filename=LOG_FILENAME,level=logging.INFO)
-        logging.basicConfig(level=logging.INFO)
-        logger = logging.getLogger(u"freeciv-proxy")
-
-        application = web.Application([
-            (ur'/civsocket', WSHandler),
-            (ur"/", IndexHandler),
-            (ur"/status", StatusHandler),
-        ])
-
-        http_server = httpserver.HTTPServer(application)
-        http_server.listen(PROXY_PORT)
-        ioloop.IOLoop.instance().start()
-
-    except KeyboardInterrupt:
-        print u'Exiting...'
+    http_server = httpserver.HTTPServer(application)
+    http_server.listen(PROXY_PORT)
+    ioloop.IOLoop.instance().start()
