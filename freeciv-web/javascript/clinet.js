@@ -1,4 +1,4 @@
-/********************************************************************** 
+/**********************************************************************
  Freeciv - Copyright (C) 2009 - Andreas Røsdal   andrearo@pvv.ntnu.no
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@ function network_init()
     return;
   }
 
-  ws = new WebSocket("ws://" + window.location.hostname + "/civsocket");
+  ws = new WebSocket($('meta[name=wsurl]').attr('content'));
 
   ws.onopen = function () {
     var login_message = {"type":4, "username" : username,
@@ -55,11 +55,11 @@ function network_init()
   };
 
   ws.onclose = function (event) {
-   console.log("WebSocket connection closed."); 
+   console.log("WebSocket connection closed.");
   };
 
   ws.onerror = function (errpr) {
-   show_dialog_message("Network error", errpr); 
+   show_dialog_message("Network error", errpr);
   };
 
 
@@ -80,7 +80,7 @@ function network_stop()
 /****************************************************************************
   Sends a request to the server, with a JSON packet.
 ****************************************************************************/
-function send_request(packet_payload) 
+function send_request(packet_payload)
 {
   ws.send(packet_payload);
 
