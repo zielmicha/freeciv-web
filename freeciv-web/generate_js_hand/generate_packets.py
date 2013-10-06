@@ -485,7 +485,7 @@ class Field:
         if self.struct_type == "float" and not self.is_array:
             return '''{
   int tmp;
-  
+
   dio_get_uint32(&din, &tmp);
   real_packet->%(name)s = (float)(tmp) / %(float_factor)d.0;
 }''' % self.__dict__
@@ -1374,7 +1374,7 @@ class Packet:
   struct %(name)s packet, *real_packet = &packet;
 
 %(fill)s
-  
+
   return send_%(name)s(pc, real_packet%(force_value)s);
 }
 
@@ -1391,7 +1391,7 @@ class Packet:
   struct %(name)s packet, *real_packet = &packet;
 
 %(fill)s
-  
+
   lsend_%(name)s(dest, real_packet);
 }
 
@@ -1566,7 +1566,7 @@ def gen_main():
     # parsing input
     src_dir = os.path.dirname(sys.argv[0])
     src_root = src_dir + "."
-    input_name = "../freeciv/freeciv/common/packets.def"
+    input_name = "../../freeciv/freeciv/common/packets.def"
     # We call this variable target_root instead of build_root
     # to avoid confusion as we are not building to builddir in
     # automake sense.
