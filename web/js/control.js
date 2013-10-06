@@ -1,4 +1,4 @@
-/********************************************************************** 
+/**********************************************************************
  Freeciv - Copyright (C) 2009 - Andreas Røsdal   andrearo@pvv.ntnu.no
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ var SELECT_SEA = 1;
 var SELECT_LAND = 2;
 var SELECT_APPEND = 3;
 
-var intro_click_description = true; 
+var intro_click_description = true;
 
 var goto_request_map = {};
 var goto_turns_request_map = {};
@@ -40,7 +40,7 @@ var current_goto_turns = 0;
 /****************************************************************************
 ...
 ****************************************************************************/
-function control_init() 
+function control_init()
 {
   // Register keyboard and mouse listener using JQuery.
   $(document).keydown (keyboard_listener);
@@ -57,7 +57,7 @@ function control_init()
   }
 
   $("#city_canvas").click(city_mapview_mouse_click);
-  
+
   $("#turn_done_button").click(send_end_turn);
   $("#freeciv_logo").click(function(event) {
     window.open('http://play.freeciv.org/', '_new');
@@ -75,16 +75,16 @@ function control_init()
 	  keyboard_input=true;
     });
 
-  /* disable text-selection, as this gives wrong mouse cursor 
+  /* disable text-selection, as this gives wrong mouse cursor
    * during drag to goto units. */
   document.onselectstart = function(){ return false; }
 
   /* disable right clicks. */
   document.oncontextmenu = function(){return allow_right_click;};
- 
-  $(window).bind('beforeunload', function(){
+
+  /*$(window).bind('beforeunload', function(){
     return "Do you really want to leave your nation behind now?";
-  });
+  });*/
 
   $(window).on('unload', function(){
     send_surrender_game();
@@ -103,20 +103,20 @@ function control_init()
   });
 
   $("#tech_tab").click(function(event) {
-    city_dialog_remove(); 
-    set_default_mapview_inactive(); 
+    city_dialog_remove();
+    set_default_mapview_inactive();
     update_tech_screen();
   });
 
   $("#players_tab").click(function(event) {
-    city_dialog_remove(); 
-    set_default_mapview_inactive(); 
+    city_dialog_remove();
+    set_default_mapview_inactive();
     update_nation_screen();
   });
 
   $("#opt_tab").click(function(event) {
     city_dialog_remove();
-    init_options_dialog(); 
+    init_options_dialog();
     set_default_mapview_inactive();
   });
 
@@ -135,7 +135,7 @@ function control_init()
     show_help();
   });
 
-  if (!is_touch_device()) { 
+  if (!is_touch_device()) {
     $("#game_unit_orders_default").tooltip();
   }
 
@@ -146,8 +146,8 @@ function control_init()
  determined if this is a touch enabled device, such as iPhone, iPad.
 ****************************************************************************/
 function is_touch_device() {
-  if(('ontouchstart' in window) || 'onmsgesturechange' in window 
-      || window.DocumentTouch && document instanceof DocumentTouch) {    
+  if(('ontouchstart' in window) || 'onmsgesturechange' in window
+      || window.DocumentTouch && document instanceof DocumentTouch) {
     return true;
   } else {
     return false;
@@ -212,7 +212,7 @@ function update_mouse_cursor()
 
   if (goto_active) {
     mapview_canvas.style.cursor = "crosshair";
-  } else if (pcity != null && city_owner_player_id(pcity) == client.conn.playing.playerno) { 
+  } else if (pcity != null && city_owner_player_id(pcity) == client.conn.playing.playerno) {
     mapview_canvas.style.cursor = "pointer";
   } else if (punit != null && punit['owner'] == client.conn.playing.playerno) {
     mapview_canvas.style.cursor = "move";
@@ -226,7 +226,7 @@ function update_mouse_cursor()
 ...
 ****************************************************************************/
 function check_text_input(event,chatboxtextarea) {
-	 
+
   if (event.keyCode == 13 && event.shiftKey == 0)  {
     var message = $(chatboxtextarea).val();
     message = escape(message.replace(/^\s+|\s+$/g,""));
@@ -251,13 +251,13 @@ function get_focus_unit_on_tile(ptile)
 
   var funits = get_units_in_focus();
   if (funits == null) return null;
-  
+
   for (var i = 0; i < funits.length; i++) {
-    var punit = funits[i]; 
+    var punit = funits[i];
     if (punit['tile'] == ptile['index']) {
       return punit;
-    } 
-  } 
+    }
+  }
   return null;
 }
 
@@ -270,11 +270,11 @@ function unit_is_in_focus(cunit)
 {
   var funits = get_units_in_focus();
   for (var i = 0; i < funits.length; i++) {
-    var punit = funits[i]; 
+    var punit = funits[i];
     if (punit['id'] == cunit['id']) {
       return true;
-    } 
-  } 
+    }
+  }
   return false;
 }
 
@@ -300,16 +300,16 @@ function update_unit_focus()
    * otherwise quit for any of the conditions. */
   var funits = get_units_in_focus();
   for (var i = 0; i < funits.length; i++) {
-    var punit = funits[i]; 
+    var punit = funits[i];
 
-    if (punit['movesleft'] > 0 
+    if (punit['movesleft'] > 0
 	  && punit['done_moving'] == false
 	  && punit['ai'] == false) {
       return;
     }
 
   }
-  
+
   advance_unit_focus();
 
 }
@@ -318,21 +318,21 @@ function update_unit_focus()
  This function may be called from packhand.c, via update_unit_focus(),
  as a result of packets indicating change in activity for a unit. Also
  called when user press the "Wait" command.
- 
+
  FIXME: Add feature to focus only units of a certain category.
 **************************************************************************/
 function advance_unit_focus()
 {
   if (client_is_observer()) return;
-  
+
   var funits = get_units_in_focus();
 
   var candidate = find_best_focus_candidate(false);
-  
+
   if (candidate == null) {
     candidate = find_best_focus_candidate(true);
   }
-  
+
   if (candidate != null) {
     set_unit_focus_and_redraw(candidate);
   } else {
@@ -347,7 +347,7 @@ function advance_unit_focus()
         center_tile_mapcanvas(city_tile(pcity));
         break;
       }
-    }  
+    }
   }
 
 }
@@ -359,16 +359,16 @@ function update_unit_order_commands()
 {
   var funits = get_units_in_focus();
   for (var i = 0; i < funits.length; i++) {
-    var punit = funits[i]; 
+    var punit = funits[i];
     var ptype = unit_type(punit);
     var ptile = index_to_tile(punit['tile']);
-    if (ptype['name'] == "Settlers" || ptype['name'] == "Workers" 
+    if (ptype['name'] == "Settlers" || ptype['name'] == "Workers"
         || ptype['name'] == "Engineers") {
       if (!tile_has_road(ptile, ROAD_ROAD)) {
         $("#order_road").show();
         $("#order_railroad").hide();
       } else if (player_invention_state(client.conn.playing, 65) == TECH_KNOWN
-                 && tile_has_road(ptile, ROAD_ROAD) 
+                 && tile_has_road(ptile, ROAD_ROAD)
                && !tile_has_road(ptile, ROAD_RAIL)) {
         $("#order_road").hide();
         $("#order_railroad").show();
@@ -418,7 +418,7 @@ function init_game_unit_panel()
 {
   unitpanel_active = true;
 
-  $("#game_unit_panel").attr("title", "Units");		
+  $("#game_unit_panel").attr("title", "Units");
   $("#game_unit_panel").dialog({
 			bgiframe: true,
 			modal: false,
@@ -430,13 +430,13 @@ function init_game_unit_panel()
 			close: function(event, ui) { unitpanel_active = false;}
 
 		});
-	
-  $("#game_unit_panel").dialog('open');		
+
+  $("#game_unit_panel").dialog('open');
   $(".unit_dialog div.ui-dialog-titlebar").css("height", "5px");
   $(".unit_dialog div.ui-dialog-content").css("padding", "5px 0");
   $("#ui-dialog-title-game_unit_panel").css("margin-top", "-5px");
   $("#ui-dialog-title-game_unit_panel").css("font-size", "10px");
-  $("#game_unit_panel").parent().css("overflow", "hidden");		
+  $("#game_unit_panel").parent().css("overflow", "hidden");
 }
 
 /**************************************************************************
@@ -447,7 +447,7 @@ function init_game_unit_panel()
 function find_best_focus_candidate(accept_current)
 {
   if (client_is_observer()) return null;
-  
+
   for (unit_id in units) {
     var punit = units[unit_id];
     if ((!unit_is_in_focus(punit) || accept_current)
@@ -485,14 +485,14 @@ function set_unit_focus(punit)
 function set_unit_focus_and_redraw(punit)
 {
   current_focus = [];
-  
+
   if (punit == null) {
     current_focus = [];
   } else {
     current_focus[0] = punit;
   }
 
-  auto_center_on_focus_unit(); 
+  auto_center_on_focus_unit();
   update_unit_info_label(current_focus);
   update_unit_order_commands();
   $("#game_unit_orders_default").show();
@@ -527,7 +527,7 @@ function auto_center_on_focus_unit()
   if (active_city != null) return; /* don't change focus while city dialog is active.*/
 
   var ptile = find_a_focus_unit_tile_to_center_on();
-  
+
   if (ptile != null && auto_center_on_unit) {
     center_tile_mapcanvas(ptile);
   }
@@ -539,9 +539,9 @@ function auto_center_on_focus_unit()
 function find_a_focus_unit_tile_to_center_on()
 {
   var funit = current_focus[0];
-  
+
   if (funit == null) return null;
-  
+
   return index_to_tile(funit['tile']);
 }
 
@@ -559,18 +559,18 @@ function find_visible_unit(ptile)
   if (unit_list_size(tile_units(ptile))==0) {
     return null;
   }
-  
+
   /* If the unit in focus is at this tile, show that on top */
   var pfocus = get_focus_unit_on_tile(ptile);
   if (pfocus != null) {
     return pfocus;
   }
-  
+
   /* If a city is here, return nothing (unit hidden by city). */
   if (tile_city(ptile) != null) {
     return null;
   }
-  
+
   /* TODO: add missing C logic here.*/
   var vunits = tile_units(ptile);
   for (var i = 0; i < vunits.length; i++) {
@@ -584,8 +584,8 @@ function find_visible_unit(ptile)
     var tunit = vunits[i];
     if (tunit['transported'] == false) {
       return tunit;
-    } 
-  }   
+    }
+  }
 
   return tile_units(ptile)[0];
 }
@@ -601,7 +601,7 @@ function get_drawable_unit(ptile, citymode)
 
   /*if (citymode != null && unit_owner(punit) == city_owner(citymode))
     return null;*/
-  
+
   if (!unit_is_in_focus(punit) || current_focus.length > 0 ) {
     return punit;
   } else {
@@ -615,7 +615,7 @@ function get_drawable_unit(ptile, citymode)
 function do_map_click(ptile, qtype)
 {
   if (ptile == null) return;
-  
+
   if (goto_active) {
     if (current_focus.length > 0) {
       var punit = current_focus[0];
@@ -629,22 +629,22 @@ function do_map_click(ptile, qtype)
       var packet = {"type" : packet_unit_move, "unit_id" : punit['id'], "tile": ptile['index'] };
       send_request (JSON.stringify(packet));
     }
-  
+
     deactivate_goto();
     update_unit_focus();
-  
+
   } else {
     var sunits = tile_units(ptile);
-    
+
     var pcity = tile_city(ptile);
-    
+
     if (pcity != null) {
       if (pcity['owner'] == client.conn.playing.playerno) {
         show_city_dialog(pcity);
       }
       return;
     }
-    
+
     if (sunits != null && sunits.length == 0) {
       /* Clicked on a tile with no units. */
       set_unit_focus_and_redraw(null);
@@ -652,18 +652,18 @@ function do_map_click(ptile, qtype)
       if (sunits[0]['owner'] == client.conn.playing.playerno) {
          if (sunits.length == 1) {
           /* A single unit has been clicked with the mouse. */
-          var unit = sunits[0];  
+          var unit = sunits[0];
 	  set_unit_focus_and_activate(unit);
         } else {
           /* more than one unit is on the selected tile. */
           set_unit_focus_and_redraw(sunits[0]);
           update_select_unit_dialog(sunits);
-        } 
+        }
       }
     }
-    
+
   }
-   
+
 }
 
 /**************************************************************************
@@ -679,7 +679,7 @@ function keyboard_listener(ev)
 
   civclient_handle_key(keyboard_key, ev.keyCode, ev['ctrlKey'],  ev['altKey'], ev['shiftKey']  );
 
-  
+
 
 }
 
@@ -693,9 +693,9 @@ civclient_handle_key(keyboard_key, key_code, ctrl, alt, shift)
   switch (keyboard_key) {
     case 'B':
       request_unit_build_city();
- 
+
       break;
-      
+
     case 'G':
       if (current_focus.length > 0) {
         activate_goto();
@@ -705,11 +705,11 @@ civclient_handle_key(keyboard_key, key_code, ctrl, alt, shift)
     case 'H':
       key_unit_homecity();
     break;
-      
+
     case 'X':
       key_unit_auto_explore();
-    break;  
-    
+    break;
+
     case 'A':
       key_unit_auto_settle();
     break;
@@ -717,49 +717,49 @@ civclient_handle_key(keyboard_key, key_code, ctrl, alt, shift)
     case 'W':
       key_unit_wait();
     break;
-     
+
     case 'R':
       key_unit_road();
     break;
 
     case 'F':
       key_unit_fortify();
-    break;   
-      
+    break;
+
     case 'I':
       key_unit_irrigate();
-    break;      
+    break;
 
     case 'S':
       key_unit_sentry();
-    break;         
+    break;
     case 'P':
       key_unit_pillage();
     break;
-    
+
     case 'M':
       key_unit_mine();
     break;
-    
+
     case 'Q':
-      if (alt) civclient_benchmark(0); 
+      if (alt) civclient_benchmark(0);
     break;
 
     case 'D':
-      if (alt) show_debug_info(); 
+      if (alt) show_debug_info();
     break;
 
   };
-  
+
   switch (key_code) {
     case 35: //1
     case 97:
       key_unit_move(DIR8_SOUTH);
     break;
-  
+
     case 40: // 2
     case 98:
-      key_unit_move(DIR8_SOUTHEAST);  
+      key_unit_move(DIR8_SOUTHEAST);
       break;
 
     case 34: // 3
@@ -791,10 +791,10 @@ civclient_handle_key(keyboard_key, key_code, ctrl, alt, shift)
     case 105:
       key_unit_move(DIR8_NORTH);
       break;
-  
-  
+
+
   };
-  
+
 }
 
 /**************************************************************************
@@ -872,9 +872,9 @@ function key_unit_auto_explore()
 {
   var funits = get_units_in_focus();
   for (var i = 0; i < funits.length; i++) {
-    var punit = funits[i]; 
+    var punit = funits[i];
     request_new_unit_activity(punit, ACTIVITY_EXPLORE, 0);
-  }  
+  }
   update_unit_focus();
 }
 
@@ -893,9 +893,9 @@ function key_unit_sentry()
 {
   var funits = get_units_in_focus();
   for (var i = 0; i < funits.length; i++) {
-    var punit = funits[i]; 
+    var punit = funits[i];
     request_new_unit_activity(punit, ACTIVITY_SENTRY, 0);
-  }  
+  }
   update_unit_focus();
 }
 
@@ -906,9 +906,9 @@ function key_unit_fortify()
 {
   var funits = get_units_in_focus();
   for (var i = 0; i < funits.length; i++) {
-    var punit = funits[i]; 
+    var punit = funits[i];
     request_new_unit_activity(punit, ACTIVITY_FORTIFYING, 0);
-  }  
+  }
   update_unit_focus();
 }
 
@@ -919,9 +919,9 @@ function key_unit_irrigate()
 {
   var funits = get_units_in_focus();
   for (var i = 0; i < funits.length; i++) {
-    var punit = funits[i]; 
+    var punit = funits[i];
     request_new_unit_activity(punit, ACTIVITY_IRRIGATE, 0);
-  }  
+  }
   update_unit_focus();
 }
 
@@ -932,9 +932,9 @@ function key_unit_pillage()
 {
   var funits = get_units_in_focus();
   for (var i = 0; i < funits.length; i++) {
-    var punit = funits[i]; 
+    var punit = funits[i];
     request_new_unit_activity(punit, ACTIVITY_PILLAGE, EXTRA_NONE);
-  }  
+  }
   update_unit_focus();
 }
 
@@ -945,24 +945,24 @@ function key_unit_mine()
 {
   var funits = get_units_in_focus();
   for (var i = 0; i < funits.length; i++) {
-    var punit = funits[i]; 
+    var punit = funits[i];
     request_new_unit_activity(punit, ACTIVITY_MINE, 0);
-  }  
+  }
   update_unit_focus();
 }
 
 /**************************************************************************
- Tell the units in focus to build road or railroad.  
+ Tell the units in focus to build road or railroad.
 **************************************************************************/
 function key_unit_road()
 {
   var funits = get_units_in_focus();
   for (var i = 0; i < funits.length; i++) {
-    var punit = funits[i]; 
+    var punit = funits[i];
     var ptile = index_to_tile(punit['tile']);
     if (!tile_has_road(ptile, ROAD_ROAD)) {
       request_new_unit_activity(punit, ACTIVITY_GEN_ROAD, extras['Road']['id']);
-    } else if (tile_has_road(ptile, ROAD_ROAD) 
+    } else if (tile_has_road(ptile, ROAD_ROAD)
                && !tile_has_road(ptile, ROAD_RAIL)) {
       request_new_unit_activity(punit, ACTIVITY_GEN_ROAD, extras['Railroad']['id']);
     }
@@ -977,7 +977,7 @@ function key_unit_homecity()
 {
   var funits = get_units_in_focus();
   for (var i = 0; i < funits.length; i++) {
-    var punit = funits[i]; 
+    var punit = funits[i];
     var ptile = index_to_tile(punit['tile']);
     var pcity = tile_city(ptile);
 
@@ -999,9 +999,9 @@ function key_unit_auto_settle()
 {
   var funits = get_units_in_focus();
   for (var i = 0; i < funits.length; i++) {
-    var punit = funits[i]; 
+    var punit = funits[i];
     request_unit_autosettlers(punit);
-  }  
+  }
   update_unit_focus();
 }
 
@@ -1039,7 +1039,7 @@ function request_unit_build_city()
 {
   if (current_focus.length > 0) {
     var punit = current_focus[0];
-    if (punit != null) { 
+    if (punit != null) {
 
       if (punit['movesleft'] == 0) {
         add_chatbox_text("Unit has no moves left to build city");
@@ -1050,7 +1050,7 @@ function request_unit_build_city()
       if (ptype['name'] == "Settlers" || ptype['name'] == "Engineers") {
         var packet = {"type" : packet_city_name_suggestion_req, "unit_id" : punit['id'] };
         send_request (JSON.stringify(packet));
-      } 
+      }
 
     }
   }
@@ -1063,7 +1063,7 @@ function key_unit_disband()
 {
   var funits = get_units_in_focus();
   for (var i = 0; i < funits.length; i++) {
-    var punit = funits[i]; 
+    var punit = funits[i];
     var packet = {"type" : packet_unit_disband, "unit_id" : punit['id'] };
     send_request (JSON.stringify(packet));
 
@@ -1071,31 +1071,31 @@ function key_unit_disband()
     clear_tile_unit(punit);
     client_remove_unit(punit);
 
-  }  
+  }
 }
 
 /**************************************************************************
  Moved the unit in focus in the specified direction.
 **************************************************************************/
-function key_unit_move(dir) 
+function key_unit_move(dir)
 {
   if (current_focus.length > 0) {
     var punit = current_focus[0];
     if (punit == null) return;
-    
+
     var ptile = index_to_tile(punit['tile']);
     if (ptile == null) return;
-    
+
     var newtile = mapstep(ptile, dir);
     if (newtile == null) return;
-        
+
     var packet = {"type" : packet_unit_move, "unit_id" : punit['id'], "tile": newtile['index'] };
     send_request (JSON.stringify(packet));
-        
+
   }
-  
-  deactivate_goto(); 
-  
+
+  deactivate_goto();
+
 }
 
 /**************************************************************************
@@ -1133,7 +1133,7 @@ function generate_preview_path(sx, sy, dx, dy)
 
   var ptile = map_pos_to_tile(sx, sy);
   current_goto_path.push(ptile);
-	
+
   /* Check if full path has been found*/
   if (sx == dx && sy == dy) return;
 
@@ -1168,7 +1168,7 @@ function request_goto_path(unit_id, dst_x, dst_y)
     var packet = {"type" : packet_goto_path_req, "unit_id" : unit_id,
                   "goal" : map_pos_to_tile(dst_x, dst_y)['index']};
     send_request (JSON.stringify(packet));
-  
+
   } else {
     current_goto_path = goto_request_map[dst_x + "," + dst_y];
     current_goto_turns = goto_turns_request_map[dst_x + "," + dst_y];
@@ -1180,7 +1180,7 @@ function request_goto_path(unit_id, dst_x, dst_y)
 ****************************************************************************/
 function check_request_goto_path()
 {
- if (goto_active && current_focus.length > 0 
+ if (goto_active && current_focus.length > 0
       && prev_mouse_x == mouse_x && prev_mouse_y == mouse_y) {
     var ptile = canvas_pos_to_tile(mouse_x, mouse_y);
     if (ptile != null) {
@@ -1213,9 +1213,9 @@ function show_goto_path(goto_packet)
 
   current_goto_turns = goto_packet['turns'];
 
-  goto_request_map[goaltile['x'] + "," + goaltile['y']] 
+  goto_request_map[goaltile['x'] + "," + goaltile['y']]
 	  = current_goto_path;
-  goto_turns_request_map[goaltile['x'] + "," + goaltile['y']] 
+  goto_turns_request_map[goaltile['x'] + "," + goaltile['y']]
 	  = current_goto_turns;
 }
 
@@ -1233,7 +1233,7 @@ function popup_caravan_dialog(punit, traderoute, wonder)
   var pcity = tile_city(ptile);
 
 
-  var dhtml = "<center>Your caravan from " + unescape(homecity['name']) + " reaches the city of "  
+  var dhtml = "<center>Your caravan from " + unescape(homecity['name']) + " reaches the city of "
 	    + unescape(pcity['name']) + ". What now? <br>"
 	    + "<input id='car_trade' class='car_button' type='button' value='Establish Traderoute'>"
 	    + "<input id='car_wonder' class='car_button' type='button' value='Help build Wonder'>"
@@ -1246,8 +1246,8 @@ function popup_caravan_dialog(punit, traderoute, wonder)
 			bgiframe: true,
 			modal: true,
 			width: "350"});
-	
-  $(id).dialog('open');		
+
+  $(id).dialog('open');
   $(".car_button").button();
   $(".car_button").css("width", "250px");
 
@@ -1256,21 +1256,20 @@ function popup_caravan_dialog(punit, traderoute, wonder)
   if (!wonder) $("#car_wonder").button( "option", "disabled", true);
 
   $("#car_trade").click(function() {
-    var packet = {"type" : packet_unit_establish_trade, 
+    var packet = {"type" : packet_unit_establish_trade,
                    "unit_id": punit['id']};
-    send_request (JSON.stringify(packet));		  
+    send_request (JSON.stringify(packet));
 
-    $(id).remove();	
+    $(id).remove();
   });
 
   $("#car_wonder").click(function() {
-    var packet = {"type" : packet_unit_help_build_wonder, 
+    var packet = {"type" : packet_unit_help_build_wonder,
                    "unit_id": punit['id']};
-    send_request (JSON.stringify(packet));		  
+    send_request (JSON.stringify(packet));
 
-    $(id).remove();	
+    $(id).remove();
   });
 
 
 }
-
