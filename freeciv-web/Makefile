@@ -1,4 +1,4 @@
-JSIN=$(wildcard javascript/*.js) generate_js_hand/packets.js generate_js_hand/packhand_gen.js
+JSIN=$(wildcard res/*.js) $(wildcard js/*.js) generate_js_hand/packets.js generate_js_hand/packhand_gen.js
 
 all: compiled/webclient.js compiled/webclient.css
 
