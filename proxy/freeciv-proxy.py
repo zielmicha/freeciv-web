@@ -1,36 +1,37 @@
 #!/usr/bin/env python
-# -*- coding: latin-1 -*-
+# -*- coding: utf-8 -*-
+'''
+Copyright (C) 2011-2013 - Andreas Rasdal <andrearo@pvv.ntnu.no>
+Copyright (C) 2013 - Michał Zieliński <michal@zielinscy.org.pl>
 
-u'''
- Freeciv - Copyright (C) 2011-2013 - Andreas Røsdal   andrearo@pvv.ntnu.no
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
-   any later version.
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2, or (at your option)
+any later version.
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 '''
 
-
-from os import path as op
 import time
 from tornado import web, websocket, ioloop, httpserver
-from debugging import *
 import logging
-from civcom import *
 import json
+import pprint
+
+from debugging import *
+from civcom import *
 
 PROXY_PORT = 8002
 
 civcoms = {}
 
-
 class IndexHandler(web.RequestHandler):
-
-    u"""Serves the Freeciv-proxy index page """
+    """
+    Serves the Freeciv-proxy index page
+    """
 
     def get(self):
         self.write(
@@ -38,8 +39,9 @@ class IndexHandler(web.RequestHandler):
 
 
 class StatusHandler(web.RequestHandler):
-
-    u"""Serves the Freeciv-proxy status page, on the url:  /status """
+    """
+    Serves the Freeciv-proxy status page, on the url:  /status
+    """
 
     def get(self):
         self.write(get_debug_info(civcoms))
@@ -47,7 +49,8 @@ class StatusHandler(web.RequestHandler):
 
 class WSHandler(websocket.WebSocketHandler):
     clients = []
-    logger = logging.getLogger(u"freeciv-proxy")
+    logger = logging.getLogger('freeciv-proxy')
+    logger.setLevel(logging.DEBUG)
 
     def open(self):
         self.clients.append(self)
@@ -55,7 +58,8 @@ class WSHandler(websocket.WebSocketHandler):
         self.set_nodelay(True)
 
     def on_message(self, message):
-        if (not self.is_ready):
+        self.logger.debug('ws message %s', pprint.pformat(json.loads(message)))
+        if not self.is_ready:
             # called the first time the user connects.
             login_message = json.loads(message)
             self.username = login_message[u'username']
@@ -70,7 +74,7 @@ class WSHandler(websocket.WebSocketHandler):
         # get the civcom instance which corresponds to this user.
         self.civcom = self.get_civcom(self.username, self.civserverport, self)
 
-        if (self.civcom == None):
+        if self.civcom == None:
             self.write_message(u"Error: Could not authenticate user.")
             return
 
