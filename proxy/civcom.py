@@ -16,52 +16,51 @@ u'''
 import socket
 import select
 from struct import *
-from threading import Thread
+import threading
 import logging
 import time
 
-HOST = u'127.0.0.1'
+
+DISPATCHER_ADDR = ('localhost', 8003)
+
 logger = logging.getLogger(u"freeciv-proxy")
+civcoms = {}
 
-# The CivCom handles communication between freeciv-proxy and the Freeciv C
-# server.
+def get_civcom(username, session_id, login_packet):
+    if session_id not in civcoms:
+        civcom = CivCom(username, session_id, login_packet)
+        civcom.start()
+        civcoms[session_id] = civcom
 
+        time.sleep(0.4)
 
-class CivCom(Thread):
+    return civcoms[session_id]
 
-    def __init__(self, username, civserverport, civwebserver):
-        Thread.__init__(self)
+class CivCom(object):
+    def __init__(self, username, session_id, login_packet):
         self.socket = None
         self.username = username
-        self.civserverport = civserverport
-        self.key = username + unicode(civserverport)
-        self.send_buffer = []
+        self.session_id = session_id
+        self.packet_callback = None
+
         self.connect_time = time.time()
-        self.civserver_messages = []
+        self.civserver_messages = [login_packet]
         self.stopped = False
+
         self.packet_size = -1
         self.net_buf = bytearray(0)
         self.header_buf = bytearray(0)
-        self.daemon = True
-        self.civwebserver = civwebserver
+        self.send_buffer = []
+
+    def start(self):
+        t = threading.Thread(target=self.run)
+        t.daemon = True
+        t.start()
 
     def run(self):
-        # setup connection to civserver
-        logger.info(u"Start connection to civserver for " + self.username
-                    + u" from IP " + self.civwebserver.ip)
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.setblocking(True)
-        self.socket.settimeout(2)
-        try:
-            self.socket.connect((HOST, self.civserverport))
-            self.socket.settimeout(0.01)
-        except socket.error, reason:
-            self.send_error_to_client(
-                u"Proxy unable to connect to civserver. Error: %s" % (reason))
-            return
+        self.connect_socket()
 
         # send initial login packet to civserver
-        self.civserver_messages = [self.civwebserver.loginpacket]
         self.send_packets_to_civserver()
 
         # receive packets from server
@@ -84,6 +83,15 @@ class CivCom(Thread):
 
             time.sleep(0.01)
             # prevent max CPU usage in case of error
+
+    def connect_socket(self):
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.connect(DISPATCHER_ADDR)
+        f = self.socket.makefile('r+', 0)
+        f.write(json.dumps({'session_id': self.session_id}))
+        response = json.loads(f.readline())
+        if response.get('error'):
+            raise CivComError(response['error'])
 
     def read_from_connection(self):
         try:
@@ -123,10 +131,12 @@ class CivCom(Thread):
         logger.info(
             u"Server connection closed. Removing civcom thread for " + self.username)
 
-        if (hasattr(self.civwebserver, u"civcoms") and self.key in list(self.civwebserver.civcoms.keys())):
-            del self.civwebserver.civcoms[self.key]
+        try:
+            del civcoms[self.session_id]
+        except KeyError:
+            pass
 
-        if (self.socket != None):
+        if self.socket is not None:
             self.socket.close()
             self.socket = None
 
@@ -139,14 +149,14 @@ class CivCom(Thread):
                 data.decode(encoding=u"utf-8", errors=u"ignore"))
         except UnicodeDecodeError:
             logger.error(
-                u"Unable to decode string from civcom socket, for user: " + self.username)
+                "Unable to decode string from civcom socket, for user: " + self.username)
             return
 
     # sends packets to client (WebSockets client / browser)
     def send_packets_to_client(self):
         packet = self.get_client_result_string()
-        if (packet != None and self.civwebserver != None):
-            self.civwebserver.write_message(packet)
+        if packet is not None and self.packet_callback:
+            self.packet_callback(packet)
 
     def get_client_result_string(self):
         result = u""
@@ -183,3 +193,6 @@ class CivCom(Thread):
     # queue message for the civserver
     def queue_to_civserver(self, message):
         self.civserver_messages.append(message)
+
+class CivComError(Exception):
+    pass

@@ -21,12 +21,11 @@ import logging
 import json
 import pprint
 
-from debugging import *
-from civcom import *
+import debugging
+import civcom
+import sys
 
 PROXY_PORT = 8002
-
-civcoms = {}
 
 class IndexHandler(web.RequestHandler):
     """
@@ -44,7 +43,7 @@ class StatusHandler(web.RequestHandler):
     """
 
     def get(self):
-        self.write(get_debug_info(civcoms))
+        self.write(debugging.get_debug_info(civcom.civcoms))
 
 
 class WSHandler(websocket.WebSocketHandler):
@@ -60,26 +59,22 @@ class WSHandler(websocket.WebSocketHandler):
     def on_message(self, message):
         self.logger.debug('ws message %s', pprint.pformat(json.loads(message)))
         if not self.is_ready:
-            # called the first time the user connects.
             login_message = json.loads(message)
-            self.username = login_message[u'username']
-            self.civserverport = login_message[u'port']
-            self.ip = self.request.headers.get(u"X-Real-IP", u"missing")
-            self.loginpacket = message
+            self.username = login_message['username']
+            self.session_id = login_message['session_id']
+            self.ip = self.request.headers.get('X-Real-IP', 'missing')
+            self.login_packet = message
             self.is_ready = True
-            self.civcom = self.get_civcom(
-                self.username, self.civserverport, self)
-            return
+            self.civcom = self.get_civcom()
+            self.civcom.packet_callback = self.write_message
+        else:
 
-        # get the civcom instance which corresponds to this user.
-        self.civcom = self.get_civcom(self.username, self.civserverport, self)
+            self.civcom = self.get_civcom()
 
-        if self.civcom == None:
-            self.write_message(u"Error: Could not authenticate user.")
-            return
-
-        # send JSON request to civserver.
-        self.civcom.queue_to_civserver(message)
+            if self.civcom:
+                self.civcom.queue_to_civserver(message)
+            else:
+                self.write_message(u"Error: Could not authenticate user.")
 
     def on_close(self):
         self.clients.remove(self)
@@ -89,22 +84,8 @@ class WSHandler(websocket.WebSocketHandler):
             if self.civcom.key in list(civcoms.keys()):
                 del civcoms[self.civcom.key]
 
-    # get the civcom instance which corresponds to the requested user.
-    def get_civcom(self, username, civserverport, ws_connection):
-        key = username + unicode(civserverport)
-        if key not in list(civcoms.keys()):
-            if (int(civserverport) < 5500):
-                return None
-            civcom = CivCom(username, int(civserverport), self)
-            civcom.start()
-            civcoms[key] = civcom
-
-            time.sleep(0.4)
-            return civcom
-        else:
-            usrcivcom = civcoms[key]
-            return usrcivcom
-
+    def get_civcom(self):
+        return civcom.get_civcom(self.username, self.session_id, self.login_packet)
 
 if __name__ == u"__main__":
     try:

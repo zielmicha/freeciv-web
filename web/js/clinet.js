@@ -37,10 +37,14 @@ function network_init()
   ws = new WebSocket($('meta[name=wsurl]').attr('content'));
 
   ws.onopen = function () {
-    var login_message = {"type":4, "username" : username,
-    "capability": freeciv_version, "version_label": "-dev",
-    "major_version" : 2, "minor_version" : 4, "patch_version" : 99,
-    "port": civserverport};
+      var login_message = {"type": 4,
+                           "username": username,
+                           "capability": freeciv_version,
+                           "version_label": "-dev",
+                           "major_version" : 2,
+                           "minor_version" : 4,
+                           "patch_version" : 99,
+                           "session_id": session_id};
     ws.send(JSON.stringify(login_message));
   };
 
@@ -61,12 +65,7 @@ function network_init()
   ws.onerror = function (errpr) {
    show_dialog_message("Network error", errpr);
   };
-
-
-
-
 }
-
 
 
 /****************************************************************************
