@@ -12,7 +12,7 @@ CLIENT_ADDR = 'tcp:localhost:7002'
 
 MAX_INACTIVITY_TIME = 120
 
-ERROR_MSG = [{'pid': 5, "message": "No free servers."}]
+ERROR_MSG = [{'pid': 5}] # Join reply message
 
 def main():
     global pool
@@ -43,7 +43,7 @@ class DispatcherHandler(object):
         connection.recv.bind(self.send)
 
         pool.refresh(self.sid)
-        connection.send_async(message)
+        connection.send_async(json.dumps(message))
 
     def send(self, data):
         self.channel.send_async(data)
@@ -97,7 +97,7 @@ class Connection(object):
     def _recv(self, msg):
         count = int(msg)
         with pool.lock:
-            print self.sock.remote_addr, 'offered', count
+            print self.sock._socket.getpeername(), 'offered', count, 'servers'
             for i in xrange(count):
                 pool.free_connections.appendleft(self)
 
