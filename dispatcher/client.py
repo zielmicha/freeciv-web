@@ -1,16 +1,15 @@
-import sys
-sys.path.append('../multisock')
-
-import multisock
 import threading
 import subprocess
 import os
 import random
 import socket
-import fcntl
 import select
 import struct
 import time
+import logging
+import json
+
+import redis
 
 PORT_START = 20000
 PORT_END = 40000
@@ -21,57 +20,83 @@ FCBASE = '../freeciv/freeciv'
 SERVER = FCBASE + '/server/freeciv-web'
 DATADIR = FCBASE + '/data'
 
+logger = logging.getLogger('client')
+logger.setLevel(logging.INFO)
+
+serv_logger = logging.getLogger('server')
+serv_logger.setLevel(logging.DEBUG)
+
 class Client(object):
-    def __init__(self, thread):
-        self.sock = thread.connect(DISPATCHER)
-        self.main = self.sock.get_main_channel()
-        self.main.recv.bind(self.recv)
-        self.servers_left = 0
-        self.init()
+    def __init__(self):
+        self.redis = redis.Redis()
 
-    def init(self):
-        self.main.send_async(str(INIT_SERVERS))
+    def main(self):
+        while True:
+            val = self.redis.blpop(['fcmaster'], timeout=10)
 
-    def recv(self, line):
-        cmd, arg = line.split()
-        arg = int(arg)
-        if cmd == 'allocate':
-            print 'starting server at channel %d' % arg
-            channel = self.sock.get_channel(arg)
-            self.start_server(channel)
+            if val:
+                channel, session_id = val
+                #self.redis.hset('fcrunning', session_id, 'true')
+                self.start_server(session_id)
 
     def start_server(self, channel):
-        threading.Thread(target=self.run_server, args=[channel]).start()
+        async(lambda: self.run_server(channel))
 
-    def run_server(self, channel):
+    def run_server(self, session_id):
         setup_globals()
         port = choose_port()
-        print 'starting server at port', port
+        logging.info('starting server at port %d', port)
         proc = subprocess.Popen([SERVER,
                                  '--exit-on-end',
-                                 '--port', '%s' % port],
+                                 '--port', '%s' % port,
+                                 '--debug', '2'],
                                 env=dict(os.environ, FREECIV_DATA_PATH=DATADIR),
-                                stdin=open('/dev/null'))
+                                stdin=open('/dev/null'),
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT)
+
+        def server_log():
+            for line in iter(proc.stdout.readline, ''):
+                serv_logger.debug(line.strip())
+
+        async(server_log)
 
         def copier():
-            try:
-                while True:
-                    data = channel.recv()
-                    print 'recieved', repr(data)
-                    header = struct.pack('<HH', len(data), 0)
-                    serv.sendall(header + data)
-            except multisock.SocketClosedError:
-                pass
+            saw_login = False
+            while True:
+                channel, data = self.redis.blpop(['fcsess_write_' + session_id])
+                packet = json.loads(data)
+                if not saw_login and 'capability' not in packet:
+                    # skip possibly stale packet
+                    continue
+                else:
+                    # force compatibility
+                    packet['minor_version'] = 5
+                    packet['capability'] = '+Freeciv.Web.Devel-2.6-2013.May.25'
+                    saw_login = True
+                logger.info('remote: %r', packet)
+                data = json.dumps(packet)
+                header = struct.pack('>HH', len(data), 0)
+                serv.sendall(header + data + '\0')
 
         serv = socket.socket()
         retry_connect(serv, ('localhost', port), count=5)
-        threading.Thread(target=copier).start()
-        print 'connected'
+        async(copier)
+        logging.info('connected')
         while True:
             r, w, x = select.select([serv], [], [])
-            data = serv.read(10000)
-            print 'read server data', repr(data)
-            channel.send_async(data)
+            header = serv.recv(4)
+            if not header:
+                break
+            length, _ = struct.unpack('>HH', header)
+
+            data = serv.makefile('r+').read(length - 4)
+            data = data.rstrip('\0')
+            logger.debug('server: %r', data)
+
+            self.redis.rpush('fcsess_read_' + session_id, data)
+
+        logger.info('server connection closed')
 
 def retry_connect(serv, addr, count):
     for i in xrange(count):
@@ -105,7 +130,10 @@ def choose_port():
             return port
     raise Exception('failed to find free port')
 
+def async(func):
+    t = threading.Thread(target=func)
+    t.daemon = True
+    t.start()
+
 if __name__ == '__main__':
-    thread = multisock.SocketThread()
-    Client(thread)
-    thread.loop()
+    Client().main()
